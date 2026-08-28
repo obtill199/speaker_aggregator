@@ -8,11 +8,11 @@ type RunRow = {
 const defaults = [
   { source: "ebay", status: "setup", label: "Add keys" },
   { source: "facebook", status: "setup", label: "Setup" },
-  { source: "reverb", status: "disabled", label: "Permission" },
-  { source: "manual", status: "healthy", label: "Ready" },
+  { source: "reverb", status: "healthy", label: "Ready" },
+  { source: "estatesales", status: "healthy", label: "Ready" },
 ];
 
-export async function GET() {
+export async function GET(request: Request) {
   const { env } = await import("cloudflare:workers");
   const result = await env.DB.prepare(
     `SELECT source, status, finished_at, error_message FROM collector_runs AS run
@@ -20,7 +20,7 @@ export async function GET() {
      ORDER BY source`,
   ).all<RunRow>();
 
-  if (!result.results.length) return Response.json({ items: defaults });
+  if (!result.results.length) return publicJson(request, { items: defaults });
 
   const items = result.results.map((row) => ({
     source: row.source,
@@ -29,5 +29,6 @@ export async function GET() {
     finishedAt: row.finished_at ? new Date(row.finished_at).toISOString() : null,
     message: row.error_message,
   }));
-  return Response.json({ items });
+  return publicJson(request, { items });
 }
+import { publicJson } from "@/lib/http/cors";

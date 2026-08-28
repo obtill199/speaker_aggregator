@@ -18,7 +18,7 @@ test("public deployment keeps the Garage behind a separate family key", async ()
   const route = await readFile(new URL("app/api/garage/route.ts", root), "utf8");
   assert.match(route, /GARAGE_ACCESS_KEY/);
   assert.match(route, /x-garage-key/i);
-  assert.match(route, /timingSafeEqual/);
+  assert.match(route, /sameSecret/);
 });
 
 test("GitHub Pages has a self-contained static preview", async () => {
@@ -27,6 +27,7 @@ test("GitHub Pages has a self-contained static preview", async () => {
   assert.match(page, /id="listings"/);
   assert.match(page, /GitHub preview/);
   assert.match(page, /the-sound-room\.obtill199\.chatgpt\.site/);
+  assert.match(page, /api\/listings/);
   assert.doesNotMatch(page, /<script[^>]+src=/i);
 });
 

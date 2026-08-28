@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { verifyGitHubCollectorToken } from "@/lib/auth/github-oidc";
+import { sameSecret } from "@/lib/auth/shared-secret";
 import { scoreListing } from "@/lib/domain/scoring";
 
 const listingSchema = z.object({
@@ -43,24 +44,32 @@ const runSchema = z.object({
 const ingestSchema = z.object({
   listings: z.array(listingSchema).max(1000),
   results: z.array(runSchema).max(30),
-  comparables: z.record(z.string(), z.array(z.object({
-    soldPriceCents: z.number().int().positive(),
-    soldAt: z.string(),
-    modelMatch: z.enum(["exact", "family", "category"]),
-    condition: z.string().optional(),
-  }))).default({}),
+  comparables: z.record(
+    z.string(),
+    z.array(z.object({
+      soldPriceCents: z.number().int().positive(),
+      soldAt: z.string(),
+      modelMatch: z.enum(["exact", "family", "category"]),
+      condition: z.string().optional(),
+    })).max(50),
+  ).default({}),
 });
+
+async function authorized(request: Request) {
+  const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (bearer) {
+    try {
+      if (await verifyGitHubCollectorToken(bearer)) return true;
+    } catch {
+      // A failed key fetch or signature check falls through to the local bridge key.
+    }
+  }
+  return sameSecret(request.headers.get("x-ingest-key"), process.env.INGEST_KEY);
+}
 
 export async function POST(request: Request) {
   const { env } = await import("cloudflare:workers");
-  const expectedKey = process.env.INGEST_KEY;
-  const suppliedKey = request.headers.get("x-ingest-key");
-  const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-  const oidcAuthorized = bearer
-    ? await verifyGitHubCollectorToken(bearer).catch(() => false)
-    : false;
-  const keyAuthorized = Boolean(expectedKey && suppliedKey === expectedKey);
-  if (!oidcAuthorized && !keyAuthorized) {
+  if (!(await authorized(request))) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -18,12 +18,10 @@ inventory controls. The design rules live in [`DESIGN.md`](DESIGN.md).
 - Explainable Great / Good / Average / No Deal / Bad gauge. Missing price or
   defensible sold comps produces **Needs Review**, never a made-up score.
 - Repair-risk reserves, mileage, shipping, and selling fees in the economics.
-- Official eBay Browse API collector, compliance-gated Reverb adapter, and an
-  authorized JSON bridge for Facebook/estate-sale/manual discoveries.
-- GitHub OIDC-authenticated ingest, source-health history, Pushover Great Deal
-  alerts, and a GitHub Actions scan every six hours.
-- A private family access code for the Garage while the listing dashboard can
-  remain publicly viewable.
+- Official eBay Browse API collector, public Reverb listings, low-frequency
+  EstateSales.net sale summaries, and an authorized Facebook JSON bridge.
+- Authenticated ingest, source-health history, Pushover Great Deal alerts, and a
+  GitHub Actions scan every six hours.
 - Labeled demo inventory until the first successful live ingest.
 
 ## Local setup
@@ -36,9 +34,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Generate `INGEST_KEY` only for local/manual ingestion and `GARAGE_ACCESS_KEY`
-for the private repair workflow. Add eBay developer credentials to enable the
-official collector. Never commit `.env.local` or marketplace credentials.
+Generate long random `INGEST_KEY` and `GARAGE_ACCESS_KEY` values. Add eBay
+developer credentials to enable the official eBay collector. Never commit
+`.env.local` or marketplace credentials.
 
 ```bash
 npm run lint
@@ -46,27 +44,24 @@ npm test
 npm run collect
 ```
 
-`npm run collect` is a safe dry run when local ingest credentials are missing.
-GitHub Actions obtains a short-lived OIDC token automatically. Database
-migrations are under `drizzle/`.
+`npm run collect` is a safe dry run when `SOUND_ROOM_INGEST_URL` is missing.
+Local publishes use `INGEST_KEY`; GitHub Actions uses a short-lived OIDC token.
+Database migrations are under `drizzle/`.
 
 ## Scheduled collection
 
-.github/workflows/collect.yml` runs at minute 17 every sixth hour and can also
-be started manually. Configure these GitHub Actions secrets:
+`.github/workflows/collect.yml` runs at minute 17 every sixth hour and can also
+be started manually. GitHub authenticates to the ingest endpoint with a
+short-lived repository/workflow identity token. Configure these Actions
+secrets:
 
 - `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`
+- optionally `REVERB_TOKEN` (public listing searches work without it)
 - optionally `PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`
 
-The workflow is pinned to this repository, branch, and workflow file by the
-site's OIDC verifier. No permanent ingestion secret is stored in GitHub.
-
-Facebook credentials are deliberately excluded from GitHub Actions. Follow the
+Reverb and EstateSales.net begin working without credentials. Facebook
+credentials are deliberately excluded from GitHub Actions. Follow the
 isolated sidecar instructions in [`collectors/facebook/README.md`](collectors/facebook/README.md).
-The sold-comparable adapter follows the approach demonstrated by
-[`YosefHayim/ebay-mcp`](https://github.com/YosefHayim/ebay-mcp). The supplied
-[`microsoft/playwright-mcp`](https://github.com/microsoft/playwright-mcp) is an
-optional authorized browser sidecar, not a source of marketplace credentials.
 
 ## Architecture
 

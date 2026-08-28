@@ -4,14 +4,21 @@ on:
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
-
-concurrency:
-  group: sound-room-collector
-  cancel-in-progress: false
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/collect.yml"
+      - "lib/collectors/**"
+      - "lib/domain/**"
+      - "scripts/collect.ts"
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: sound-room-collector
+  cancel-in-progress: false
 
 jobs:
   collect:
@@ -29,5 +36,6 @@ jobs:
           EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
           EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
           SOUND_ROOM_INGEST_URL: https://the-sound-room.obtill199.chatgpt.site/api/ingest
+          REVERB_TOKEN: ${{ secrets.REVERB_TOKEN }}
           PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
           PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}

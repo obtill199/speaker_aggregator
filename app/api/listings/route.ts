@@ -1,5 +1,6 @@
 import { DEMO_LISTINGS } from "@/lib/data/demo";
 import type { ScoreResult } from "@/lib/domain/scoring";
+import { publicJson } from "@/lib/http/cors";
 
 type ListingRow = {
   id: string;
@@ -59,7 +60,7 @@ function storedScore(row: ListingRow): ScoreResult {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { env } = await import("cloudflare:workers");
   const result = await env.DB.prepare(
     `SELECT * FROM listings WHERE status = 'active'
@@ -67,10 +68,10 @@ export async function GET() {
   ).all<ListingRow>();
 
   if (!result.results.length) {
-    return Response.json({ mode: "demo", items: DEMO_LISTINGS });
+    return publicJson(request, { mode: "demo", items: DEMO_LISTINGS });
   }
 
-  return Response.json({
+  return publicJson(request, {
     mode: "live",
     items: result.results.map((row, index) => ({
       id: row.id,

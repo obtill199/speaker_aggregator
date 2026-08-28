@@ -23,6 +23,6 @@ export async function runCollectors(
   });
   const listings = deduplicateListings(
     results.flatMap((result) => result.listings).map((listing) => normalizeListing(listing)),
-  ).filter((listing) => !listing.excluded && listing.brand);
+  ).filter((listing) => !listing.excluded && (listing.category === "estate-lead" || Boolean(listing.brand)) && (listing.category === "estate-lead" || listing.isVintage));
   return { listings, results };
 }

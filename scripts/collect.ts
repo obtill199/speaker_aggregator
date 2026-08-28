@@ -2,12 +2,13 @@ import { readFile } from "node:fs/promises";
 
 import { sendGreatDealAlerts } from "../lib/alerts/pushover";
 import { EbayCollector } from "../lib/collectors/ebay";
-import { collectEbayComparables } from "../lib/collectors/ebay-comps";
+import { EstateSalesCollector } from "../lib/collectors/estate-sales";
 import { ManualCollector } from "../lib/collectors/manual";
 import { ReverbCollector } from "../lib/collectors/reverb";
 import { runCollectors } from "../lib/collectors/run";
 import type { Collector } from "../lib/collectors/types";
 import type { RawListing } from "../lib/domain/listing";
+import type { Comparable } from "../lib/domain/scoring";
 
 async function importedListings() {
   const path = process.env.FACEBOOK_IMPORT_PATH;
@@ -17,15 +18,42 @@ async function importedListings() {
   return payload as RawListing[];
 }
 
+async function importedComparables() {
+  const path = process.env.COMPARABLES_IMPORT_PATH;
+  if (!path) return {};
+  const payload = JSON.parse(await readFile(path, "utf8")) as unknown;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("COMPARABLES_IMPORT_PATH must contain an object keyed by normalized listing ID.");
+  }
+  return payload as Record<string, Comparable[]>;
+}
+
+async function githubIdentityToken() {
+  const requestUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+  const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+  if (!requestUrl || !requestToken) return null;
+  const url = new URL(requestUrl);
+  url.searchParams.set("audience", "the-sound-room");
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${requestToken}` },
+  });
+  if (!response.ok) throw new Error(`GitHub identity token request failed (${response.status}).`);
+  const payload = (await response.json()) as { value?: string };
+  if (!payload.value) throw new Error("GitHub identity token response did not contain a token.");
+  return payload.value;
+}
+
 async function main() {
-  const collectors: Collector[] = [new EbayCollector(), new ReverbCollector()];
+  const collectors: Collector[] = [
+    new EbayCollector(),
+    new ReverbCollector(),
+    new EstateSalesCollector(),
+  ];
   const imported = await importedListings();
   if (imported.length) collectors.push(new ManualCollector(imported));
 
   const output = await runCollectors(collectors);
-  const comparableResult = await collectEbayComparables(output.listings);
-  const ebayRun = output.results.find((result) => result.source === "ebay");
-  if (ebayRun) ebayRun.warnings.push(...comparableResult.warnings);
+  const comparables = await importedComparables();
   for (const result of output.results) {
     const note = result.warnings.length ? ` — ${result.warnings.join(" ")}` : "";
     console.log(`${result.source}: ${result.status}, ${result.listings.length} discovered${note}`);
@@ -33,18 +61,14 @@ async function main() {
 
   const ingestUrl = process.env.SOUND_ROOM_INGEST_URL;
   const ingestKey = process.env.INGEST_KEY;
-  let oidcToken = "";
-  if (!ingestKey && process.env.ACTIONS_ID_TOKEN_REQUEST_URL && process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN) {
-    const tokenUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
-    tokenUrl.searchParams.set("audience", "the-sound-room");
-    const tokenResponse = await fetch(tokenUrl, {
-      headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` },
-    });
-    if (!tokenResponse.ok) throw new Error(`Could not obtain GitHub OIDC token (${tokenResponse.status}).`);
-    oidcToken = ((await tokenResponse.json()) as { value: string }).value;
+  if (!ingestUrl) {
+    console.log(`Dry run complete: ${output.listings.length} normalized matches. Add SOUND_ROOM_INGEST_URL to publish results.`);
+    return;
   }
-  if (!ingestUrl || (!ingestKey && !oidcToken)) {
-    console.log(`Dry run complete: ${output.listings.length} normalized matches. Add an ingest URL and local key, or run in GitHub Actions, to publish results.`);
+
+  const identityToken = await githubIdentityToken();
+  if (!identityToken && !ingestKey) {
+    console.log(`Dry run complete: ${output.listings.length} normalized matches. Run in GitHub Actions or add INGEST_KEY for a local publish.`);
     return;
   }
 
@@ -52,9 +76,9 @@ async function main() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(ingestKey ? { "X-Ingest-Key": ingestKey } : { Authorization: `Bearer ${oidcToken}` }),
+      ...(identityToken ? { Authorization: `Bearer ${identityToken}` } : { "X-Ingest-Key": ingestKey! }),
     },
-    body: JSON.stringify({ ...output, comparables: comparableResult.comparables }),
+    body: JSON.stringify({ ...output, comparables }),
   });
   if (!response.ok) throw new Error(`Ingest failed (${response.status}): ${await response.text()}`);
   const result = (await response.json()) as {

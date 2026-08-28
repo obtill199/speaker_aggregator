@@ -6,23 +6,13 @@ const EXPECTED_REF = "refs/heads/main";
 const EXPECTED_WORKFLOW = `${EXPECTED_REPOSITORY}/.github/workflows/collect.yml@${EXPECTED_REF}`;
 
 type JwtHeader = { alg?: string; kid?: string };
-type JwtClaims = {
-  iss?: string;
-  aud?: string | string[];
-  exp?: number;
-  nbf?: number;
-  repository?: string;
-  ref?: string;
-  workflow_ref?: string;
-};
+type JwtClaims = { iss?: string; aud?: string | string[]; exp?: number; nbf?: number; repository?: string; ref?: string; workflow_ref?: string };
 type JwksResponse = { keys?: Array<JsonWebKey & { kid?: string; alg?: string }> };
-
 let jwksCache: { expiresAt: number; value: JwksResponse } | null = null;
 
 function decodeBase64Url(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-  const binary = atob(padded);
+  const binary = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
@@ -42,7 +32,6 @@ async function getJwks(fetcher: typeof fetch) {
 export async function verifyGitHubCollectorToken(token: string, fetcher = fetch) {
   const parts = token.split(".");
   if (parts.length !== 3) return false;
-
   let header: JwtHeader;
   let claims: JwtClaims;
   try {
@@ -52,36 +41,12 @@ export async function verifyGitHubCollectorToken(token: string, fetcher = fetch)
     return false;
   }
   if (header.alg !== "RS256" || !header.kid) return false;
-
-  const jwks = await getJwks(fetcher);
-  const jwk = jwks.keys?.find((candidate) => candidate.kid === header.kid);
+  const jwk = (await getJwks(fetcher)).keys?.find((candidate) => candidate.kid === header.kid);
   if (!jwk || (jwk.alg && jwk.alg !== "RS256")) return false;
-
-  const key = await crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-  const validSignature = await crypto.subtle.verify(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    decodeBase64Url(parts[2]),
-    new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
-  );
-  if (!validSignature) return false;
-
+  const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  const signatureValid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, decodeBase64Url(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`));
+  if (!signatureValid) return false;
   const now = Math.floor(Date.now() / 1000);
   const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  return (
-    claims.iss === GITHUB_ISSUER &&
-    audience.includes(EXPECTED_AUDIENCE) &&
-    typeof claims.exp === "number" &&
-    claims.exp > now - 30 &&
-    (claims.nbf === undefined || claims.nbf <= now + 30) &&
-    claims.repository === EXPECTED_REPOSITORY &&
-    claims.ref === EXPECTED_REF &&
-    claims.workflow_ref === EXPECTED_WORKFLOW
-  );
+  return claims.iss === GITHUB_ISSUER && audience.includes(EXPECTED_AUDIENCE) && typeof claims.exp === "number" && claims.exp > now - 30 && (claims.nbf === undefined || claims.nbf <= now + 30) && claims.repository === EXPECTED_REPOSITORY && claims.ref === EXPECTED_REF && claims.workflow_ref === EXPECTED_WORKFLOW;
 }

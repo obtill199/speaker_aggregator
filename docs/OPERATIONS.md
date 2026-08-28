@@ -3,27 +3,26 @@
 ## First live scan checklist
 
 1. Deploy the site and apply both SQL migrations in `drizzle/` to its D1 database.
-2. Set a random `GARAGE_ACCESS_KEY` in the site runtime.
-3. Add `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` as GitHub Actions secrets.
-4. Run **Scan vintage audio listings** manually in GitHub Actions. The job uses
-   a short-lived GitHub OIDC token to authenticate to the fixed ingest URL.
+2. Set long random `INGEST_KEY` and `GARAGE_ACCESS_KEY` values in the site runtime.
+3. Add eBay credentials as GitHub Actions secrets. The workflow's short-lived
+   OIDC token authenticates ingestion; no permanent ingest key is stored in GitHub.
+4. Run **Scan vintage audio listings** manually in GitHub Actions.
 5. Confirm the job says `Published … matches`, the dashboard changes to **Live
    inventory**, and `/api/health` reports the collector run.
 6. Add Pushover secrets only after ingestion works.
 
-The public dashboard allows the GitHub runner to reach `/api/ingest`; that
-endpoint accepts only a valid token for this repository's main-branch collector
-workflow (or an optional local `INGEST_KEY`). The Garage remains independently
-protected by `GARAGE_ACCESS_KEY`.
+The public dashboard exposes only active listing summaries and collector
+health. Garage reads and writes require the separate `GARAGE_ACCESS_KEY`.
 
 ## Health and recovery
 
 - **eBay says Add keys:** credentials are absent from the runner.
 - **eBay is degraded:** inspect the Action log for rate limiting or a rejected
   search. One failed brand query does not discard other results.
-- **Ingest returns 401:** confirm the workflow has `id-token: write` and its
-  repository, branch, workflow filename, audience, and fixed ingest URL match
-  the verifier.
+- **Ingest returns 401 in Actions:** confirm `id-token: write`, the `main` ref,
+  and the exact `.github/workflows/collect.yml` workflow path have not changed.
+- **Local Facebook publish returns 401:** the local `INGEST_KEY` does not match
+  the site runtime value.
 - **Dashboard remains in demo mode:** verify migrations and inspect the ingest
   response. Demo mode is the expected empty-database fallback.
 - **No Great Deal alerts:** a listing needs a price and defensible sold comps.
@@ -41,10 +40,9 @@ normalization. The UI reads the most recent run for each source.
 - Keep all secrets in the site environment, GitHub Actions secrets, or a local
   untracked environment file.
 - Do not place Facebook credentials in this repository or GitHub Actions.
-- Rotate `GARAGE_ACCESS_KEY` immediately if it is exposed. Rotate a local
-  `INGEST_KEY` too if that optional fallback is enabled and exposed.
-- Leave `REVERB_ENABLED=false` until access and automated-use permission are
-  confirmed.
+- Rotate `INGEST_KEY` immediately if it appears in a log or commit.
+- Treat a Reverb 401/403 as a signal to add `REVERB_TOKEN` or pause that source;
+  the other collectors will continue independently.
 
 ## Database changes
 

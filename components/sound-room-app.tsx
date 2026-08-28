@@ -14,7 +14,7 @@ import {
   Warehouse,
   Wrench,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -326,21 +326,38 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
   const [source, setSource] = useState("all");
   const [selected, setSelected] = useState<DemoListing | null>(null);
   const [garage, setGarage] = useState<GarageItem[]>([]);
+  const [lastScan, setLastScan] = useState("Waiting for first scan");
+  const [inventoryMode, setInventoryMode] = useState<"demo" | "live">("demo");
   const [garageKey, setGarageKey] = useState("");
   const [garageKeyDraft, setGarageKeyDraft] = useState("");
   const [garageError, setGarageError] = useState("");
-  const [lastScan, setLastScan] = useState("Checking…");
-  const [inventoryMode, setInventoryMode] = useState<"demo" | "live">("demo");
   const [sourceHealth, setSourceHealth] = useState<SourceHealth[]>([
     { source: "ebay", status: "setup", label: "Add keys" },
     { source: "facebook", status: "setup", label: "Setup" },
-    { source: "reverb", status: "disabled", label: "Permission" },
-    { source: "manual", status: "healthy", label: "Ready" },
+    { source: "reverb", status: "healthy", label: "Ready" },
+    { source: "estatesales", status: "healthy", label: "Ready" },
   ]);
+
+  const loadGarage = useCallback(async (key: string) => {
+    const response = await fetch("/api/garage", { headers: { "X-Garage-Key": key } });
+    if (!response.ok) throw new Error(response.status === 401 ? "That Garage key was not accepted." : "The Garage could not be loaded.");
+    const payload = await response.json();
+    setGarage(payload.items ?? []);
+    setGarageError("");
+  }, []);
 
   useEffect(() => {
     const savedGarageKey = window.localStorage.getItem("sound-room-garage-key") ?? "";
-    if (savedGarageKey) queueMicrotask(() => setGarageKey(savedGarageKey));
+    if (savedGarageKey) {
+      fetch("/api/garage", { headers: { "X-Garage-Key": savedGarageKey } })
+        .then((response) => response.ok ? response.json() : Promise.reject())
+        .then((payload) => {
+          setGarage(payload.items ?? []);
+          setGarageKey(savedGarageKey);
+          setGarageKeyDraft(savedGarageKey);
+        })
+        .catch(() => window.localStorage.removeItem("sound-room-garage-key"));
+    }
     Promise.allSettled([
       fetch("/api/listings").then((response) => response.ok ? response.json() : Promise.reject()),
       fetch("/api/health").then((response) => response.ok ? response.json() : Promise.reject()),
@@ -351,37 +368,24 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
       }
       if (healthResult.status === "fulfilled" && healthResult.value.items?.length) {
         setSourceHealth(healthResult.value.items);
-        const latest = healthResult.value.items
-          .map((item: SourceHealth) => item.finishedAt ? Date.parse(item.finishedAt) : 0)
-          .reduce((maximum: number, value: number) => Math.max(maximum, value), 0);
-        setLastScan(latest
-          ? new Date(latest).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-          : "Awaiting first run");
+        const finished = healthResult.value.items
+          .map((item: SourceHealth) => item.finishedAt)
+          .filter(Boolean)
+          .sort()
+          .at(-1);
+        if (finished) setLastScan(new Date(finished).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }));
       }
     });
-  }, []);
+  }, [loadGarage]);
 
-  useEffect(() => {
-    if (!garageKey) return;
-    fetch("/api/garage", { headers: { "X-Garage-Key": garageKey } })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Access code not recognized.")))
-      .then((payload) => {
-        setGarage(payload.items ?? []);
-        setGarageError("");
-        window.localStorage.setItem("sound-room-garage-key", garageKey);
-      })
-      .catch((error: Error) => {
-        setGarageError(error.message);
-        setGarageKey("");
-        window.localStorage.removeItem("sound-room-garage-key");
-      });
-  }, [garageKey]);
-
-  const unlockGarage = () => {
-    const candidate = garageKeyDraft.trim();
-    if (!candidate) return;
-    setGarageError("");
-    setGarageKey(candidate);
+  const unlockGarage = async () => {
+    try {
+      await loadGarage(garageKeyDraft);
+      window.localStorage.setItem("sound-room-garage-key", garageKeyDraft);
+      setGarageKey(garageKeyDraft);
+    } catch (error) {
+      setGarageError(error instanceof Error ? error.message : "The Garage could not be unlocked.");
+    }
   };
 
   const brands = useMemo(() => [...new Set(listings.map((item) => item.brand).filter(Boolean))] as string[], [listings]);
@@ -401,7 +405,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
     if (!garageKey) {
       setSelected(null);
       setView("garage");
-      setGarageError("Enter the Garage access code before saving equipment.");
+      setGarageError("Enter the private Garage key before saving equipment.");
       return;
     }
     if (garage.some((item) => item.listingId === listing.id)) return;
@@ -474,7 +478,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
             <TabsContent value="new"><div className="surface-heading"><div><span className="eyebrow">Since the last scan</span><h2>New on the dial</h2></div><p>{newListings.length} matches surfaced from configured sources.</p></div><div className="listing-grid">{newListings.map((listing) => <ListingCard key={listing.id} listing={listing} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
             <TabsContent value="all"><div className="surface-heading"><div><span className="eyebrow">Complete inventory</span><h2>All matching equipment</h2></div><p>{filtered.length} listings after filters.</p></div><div className="listing-grid">{filtered.map((listing) => <ListingCard key={listing.id} listing={listing} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
             <TabsContent value="map"><RadarMap listings={filtered} onInspect={setSelected} /></TabsContent>
-            <TabsContent value="garage"><div className="surface-heading"><div><span className="eyebrow">Repair and resale workflow</span><h2>The Garage</h2></div><p>Save a listing, then track it from first contact through sale.</p></div>{garageKey ? <GarageBoard items={garage} listings={listings} onMove={moveGarageItem} /> : <section className="garage-gate"><Warehouse /><div><span className="eyebrow">Private repair bench</span><h3>Unlock the Garage</h3><p>Live listings are public. Repair projects stay behind the family access code.</p></div><div className="garage-key-form"><Input type="password" value={garageKeyDraft} onChange={(event) => setGarageKeyDraft(event.target.value)} onKeyDown={(event) => event.key === "Enter" && unlockGarage()} placeholder="Garage access code" aria-label="Garage access code" /><Button onClick={unlockGarage}>Unlock</Button></div>{garageError && <p className="garage-error" role="alert">{garageError}</p>}</section>}</TabsContent>
+            <TabsContent value="garage"><div className="surface-heading"><div><span className="eyebrow">Repair and resale workflow</span><h2>The Garage</h2></div><p>Save a listing, then track it from first contact through sale.</p></div>{garageKey ? <GarageBoard items={garage} listings={listings} onMove={moveGarageItem} /> : <section className="garage-lock"><Warehouse /><span className="eyebrow">Private inventory</span><h3>Unlock the Garage</h3><p>The public can browse deals, but only family members with the key can view or change the repair pipeline.</p><div><Input type="password" value={garageKeyDraft} onChange={(event) => setGarageKeyDraft(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void unlockGarage()} placeholder="Garage access key" aria-label="Garage access key" /><Button onClick={() => void unlockGarage()}>Unlock</Button></div>{garageError && <strong role="alert">{garageError}</strong>}</section>}</TabsContent>
           </div>
         </div>
       </Tabs>
