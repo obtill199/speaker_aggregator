@@ -22,7 +22,7 @@ test("public deployment keeps the Garage behind a separate family key", async ()
 });
 
 test("GitHub Pages has a self-contained static preview", async () => {
-  const page = await readFile(new URL("index.html", root), "utf8");
+  const page = await readFile(new URL("docs/index.html", root), "utf8");
   assert.match(page, /The Sound Room/);
   assert.match(page, /id="listings"/);
   assert.match(page, /GitHub preview/);
