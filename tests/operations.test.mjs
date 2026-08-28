@@ -47,3 +47,10 @@ test("operational documentation preserves compliance and scoring safeguards", as
   assert.match(scoring, /Needs Review/);
   assert.match(scoring, /lower quartile/i);
 });
+
+test("demo cards cannot masquerade as live marketplace links", async () => {
+  const component = await readFile(new URL("components/sound-room-app.tsx", root), "utf8");
+  assert.match(component, /These are fictional examples, not available equipment/);
+  assert.match(component, /No marketplace listing/);
+  assert.match(component, /isDemo \? "Demo example"/);
+});

@@ -127,12 +127,12 @@ function GradeBadge({ listing, large = false }: { listing: DemoListing; large?: 
   );
 }
 
-function ListingCard({ listing, onInspect }: { listing: DemoListing; onInspect: () => void }) {
+function ListingCard({ listing, onInspect, isDemo }: { listing: DemoListing; onInspect: () => void; isDemo: boolean }) {
   return (
     <article className="listing-card">
       <button className="listing-card-visual" onClick={onInspect} aria-label={`Inspect ${listing.title}`}>
         <EquipmentIllustration category={listing.category} brand={listing.brand} />
-        <span className="source-flag">{sourceLabel(listing.source)}</span>
+        <span className="source-flag">{isDemo ? "Demo example" : sourceLabel(listing.source)}</span>
       </button>
       <div className="listing-card-body">
         <div className="listing-card-topline">
@@ -168,12 +168,14 @@ function DetailSheet({
   onOpenChange,
   onSave,
   saved,
+  isDemo,
 }: {
   listing: DemoListing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (listing: DemoListing) => void;
   saved: boolean;
+  isDemo: boolean;
 }) {
   if (!listing) return null;
   return (
@@ -239,12 +241,10 @@ function DetailSheet({
           </section>
         </div>
         <SheetFooter className="detail-footer">
-          <Button variant="outline" onClick={() => onSave(listing)} disabled={saved}>
-            <Bookmark /> {saved ? "Saved to Garage" : "Save to Garage"}
+          <Button variant="outline" onClick={() => onSave(listing)} disabled={saved || isDemo}>
+            <Bookmark /> {isDemo ? "Demo example" : saved ? "Saved to Garage" : "Save to Garage"}
           </Button>
-          <Button asChild>
-            <a href={listing.url} target="_blank" rel="noreferrer">Open original <ExternalLink /></a>
-          </Button>
+          {isDemo ? <Button disabled>No marketplace listing</Button> : <Button asChild><a href={listing.url} target="_blank" rel="noreferrer">Open original <ExternalLink /></a></Button>}
         </SheetFooter>
       </SheetContent>
     </Sheet>
@@ -443,7 +443,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
         <div className="scan-status"><span className="status-lamp status-lamp-live" /><div><small>Last scan</small><strong>{lastScan}</strong></div><Button size="sm" variant="outline" onClick={() => window.location.reload()}>Refresh</Button></div>
       </header>
 
-      <div className="demo-notice"><span>{inventoryMode === "live" ? "Live inventory" : "Demo inventory"}</span> {inventoryMode === "live" ? "Marketplace scans are feeding this dashboard." : "The working dashboard is live. Marketplace credentials will replace these labeled examples with fresh scans."}</div>
+      <div className="demo-notice"><span>{inventoryMode === "live" ? "Live inventory" : "Demo only"}</span> {inventoryMode === "live" ? "Marketplace scans are feeding this dashboard. Open Original goes to the exact listing page." : "These are fictional examples, not available equipment. They have no marketplace listing pages and will be replaced after the first live scan."}</div>
 
       <section className="dashboard-summary">
         <div className="summary-intro"><span className="eyebrow">Listening post · {SEARCH_CENTER.label}</span><h2>Fresh vintage finds, ranked for the repair bench.</h2><p>Every score includes travel, repair reserve, conservative sold value, fees, and confidence.</p></div>
@@ -475,15 +475,15 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
           </aside>
 
           <div className="working-surface">
-            <TabsContent value="new"><div className="surface-heading"><div><span className="eyebrow">Since the last scan</span><h2>New on the dial</h2></div><p>{newListings.length} matches surfaced from configured sources.</p></div><div className="listing-grid">{newListings.map((listing) => <ListingCard key={listing.id} listing={listing} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
-            <TabsContent value="all"><div className="surface-heading"><div><span className="eyebrow">Complete inventory</span><h2>All matching equipment</h2></div><p>{filtered.length} listings after filters.</p></div><div className="listing-grid">{filtered.map((listing) => <ListingCard key={listing.id} listing={listing} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
+            <TabsContent value="new"><div className="surface-heading"><div><span className="eyebrow">Since the last scan</span><h2>New on the dial</h2></div><p>{newListings.length} matches surfaced from configured sources.</p></div><div className="listing-grid">{newListings.map((listing) => <ListingCard key={listing.id} listing={listing} isDemo={inventoryMode === "demo"} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
+            <TabsContent value="all"><div className="surface-heading"><div><span className="eyebrow">Complete inventory</span><h2>All matching equipment</h2></div><p>{filtered.length} listings after filters.</p></div><div className="listing-grid">{filtered.map((listing) => <ListingCard key={listing.id} listing={listing} isDemo={inventoryMode === "demo"} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
             <TabsContent value="map"><RadarMap listings={filtered} onInspect={setSelected} /></TabsContent>
             <TabsContent value="garage"><div className="surface-heading"><div><span className="eyebrow">Repair and resale workflow</span><h2>The Garage</h2></div><p>Save a listing, then track it from first contact through sale.</p></div>{garageKey ? <GarageBoard items={garage} listings={listings} onMove={moveGarageItem} /> : <section className="garage-lock"><Warehouse /><span className="eyebrow">Private inventory</span><h3>Unlock the Garage</h3><p>The public can browse deals, but only family members with the key can view or change the repair pipeline.</p><div><Input type="password" value={garageKeyDraft} onChange={(event) => setGarageKeyDraft(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void unlockGarage()} placeholder="Garage access key" aria-label="Garage access key" /><Button onClick={() => void unlockGarage()}>Unlock</Button></div>{garageError && <strong role="alert">{garageError}</strong>}</section>}</TabsContent>
           </div>
         </div>
       </Tabs>
 
-      <DetailSheet listing={selected} open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)} onSave={saveListing} saved={Boolean(selected && garage.some((item) => item.listingId === selected.id))} />
+      <DetailSheet listing={selected} open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)} onSave={saveListing} saved={Boolean(selected && garage.some((item) => item.listingId === selected.id))} isDemo={inventoryMode === "demo"} />
       <footer><span>The Sound Room</span><p>Scores are estimates, not appraisals. Inspect and test equipment before buying.</p></footer>
     </main>
   );

@@ -39,7 +39,8 @@ test("renders The Sound Room product metadata", async () => {
   assert.match(html, /Radius map/i);
   assert.match(html, /Garage/i);
   assert.match(html, /JBL L100 Century speakers/i);
-  assert.match(html, /Demo inventory/i);
+  assert.match(html, /Demo only/i);
+  assert.match(html, /fictional examples, not available equipment/i);
   assert.doesNotMatch(html, /Ship something real from a clean baseline/i);
 });
 

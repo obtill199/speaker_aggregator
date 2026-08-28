@@ -62,6 +62,7 @@ test("maps public Reverb results into normalized USD listings", async () => {
   assert.equal(result.status, "healthy");
   assert.equal(result.listings[0].priceCents, 82500);
   assert.equal(result.listings[0].description, "Classic walnut cabinets");
+  assert.equal(result.listings[0].url, "https://reverb.com/item/77");
 });
 
 test("GitHub Pages CORS is exact and does not open the API to arbitrary origins", async () => {
