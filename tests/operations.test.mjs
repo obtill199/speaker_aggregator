@@ -21,6 +21,15 @@ test("public deployment keeps the Garage behind a separate family key", async ()
   assert.match(route, /timingSafeEqual/);
 });
 
+test("GitHub Pages has a self-contained static preview", async () => {
+  const page = await readFile(new URL("index.html", root), "utf8");
+  assert.match(page, /The Sound Room/);
+  assert.match(page, /id="listings"/);
+  assert.match(page, /GitHub preview/);
+  assert.match(page, /the-sound-room\.obtill199\.chatgpt\.site/);
+  assert.doesNotMatch(page, /<script[^>]+src=/i);
+});
+
 test("Facebook sidecar keeps credentials out of its checked-in config", async () => {
   const config = await readFile(new URL("collectors/facebook/config.example.toml", root), "utf8");
   assert.match(config, /search_city = "wichita"/);
