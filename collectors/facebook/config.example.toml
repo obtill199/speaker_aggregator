@@ -1,0 +1,22 @@
+# The upstream project is intentionally run as a separate process.
+# Put credentials in FACEBOOK_USERNAME and FACEBOOK_PASSWORD, never in this file.
+
+[marketplace.facebook]
+search_city = "wichita"
+login_wait_time = 60
+search_interval = "6h"
+max_search_interval = "8h"
+seller_locations = ["Wichita", "Derby", "Winfield", "Arkansas City", "Hutchinson", "Newton", "Salina", "Emporia", "Topeka", "Oklahoma City", "Tulsa", "Kansas City"]
+exclude_sellers = []
+
+[item.vintage_speakers]
+search_phrases = ["JBL vintage speakers", "Klipsch vintage speakers", "Klipsh speakers", "Advent speakers", "Pioneer vintage speakers", "Pioner speakers"]
+search_city = "wichita"
+seller_locations = []
+antikeywords = ["bluetooth", "soundbar", "car audio", "empty cabinet"]
+
+[item.vintage_receivers]
+search_phrases = ["Sansui receiver", "Pioneer receiver", "Pioner receiver", "Marantz receiver", "Yamaha vintage receiver"]
+search_city = "wichita"
+seller_locations = []
+antikeywords = ["bluetooth", "car stereo", "remote only"]
