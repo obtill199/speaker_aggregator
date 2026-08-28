@@ -65,6 +65,22 @@ test("maps public Reverb results into normalized USD listings", async () => {
   assert.equal(result.listings[0].url, "https://reverb.com/item/77");
 });
 
+test("retries one transient Reverb failure without degrading the whole source", async () => {
+  const { ReverbCollector } = await vite.ssrLoadModule("/lib/collectors/reverb.ts");
+  const collector = new ReverbCollector();
+  let calls = 0;
+  const result = await collector.collect({
+    fetch: async () => {
+      calls += 1;
+      if (calls === 1) return new Response("temporary", { status: 502 });
+      return Response.json({ listings: [] });
+    },
+  });
+  assert.equal(calls, 9);
+  assert.equal(result.status, "healthy");
+  assert.deepEqual(result.warnings, []);
+});
+
 test("GitHub Pages CORS is exact and does not open the API to arbitrary origins", async () => {
   const { publicJson } = await vite.ssrLoadModule("/lib/http/cors.ts");
   const allowed = publicJson(new Request("https://example.com", { headers: { Origin: "https://obtill199.github.io" } }), { ok: true });

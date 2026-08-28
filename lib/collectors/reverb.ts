@@ -38,6 +38,16 @@ function toRaw(item: ReverbListing): RawListing | null {
   };
 }
 
+async function fetchReverb(context: CollectorContext, url: string, headers: Record<string, string>) {
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    response = await context.fetch(url, { headers, signal: context.signal });
+    if (response.ok || (response.status !== 429 && response.status < 500)) return response;
+    if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 750));
+  }
+  return response!;
+}
+
 export class ReverbCollector implements Collector {
   source = "reverb" as const;
 
@@ -47,10 +57,11 @@ export class ReverbCollector implements Collector {
     const warnings: string[] = [];
     for (const rule of WATCH_RULES) {
       const params = new URLSearchParams({ query: `${rule.brand} vintage ${rule.category === "speaker" ? "speaker" : "receiver"}`, per_page: "40" });
-      const response = await context.fetch(`https://api.reverb.com/api/listings/all?${params}`, {
-        headers: { Accept: "application/hal+json", "Accept-Version": "3.0", ...(process.env.REVERB_TOKEN ? { Authorization: `Bearer ${process.env.REVERB_TOKEN}` } : {}) },
-        signal: context.signal,
-      });
+      const response = await fetchReverb(
+        context,
+        `https://api.reverb.com/api/listings/all?${params}`,
+        { Accept: "application/hal+json", "Accept-Version": "3.0", ...(process.env.REVERB_TOKEN ? { Authorization: `Bearer ${process.env.REVERB_TOKEN}` } : {}) },
+      );
       if (!response.ok) {
         warnings.push(`${rule.brand} ${rule.category}: Reverb returned ${response.status}.`);
         continue;
