@@ -2,7 +2,7 @@
 
 | Source | State | Collection path | Notes |
 |---|---|---|---|
-| eBay | Ready after credentials | Official OAuth + Browse API | Local-pickup query centered on ZIP 67146 with a 250-mile radius |
+| eBay | Ready after credentials | Official OAuth + Browse API, plus sold-comparable lookup | Local-pickup query centered on ZIP 67146 with a 250-mile radius |
 | Facebook Marketplace | Opt-in sidecar | `ai-marketplace-monitor` + authorized JSON bridge | Runs separately; no credentials stored in the app |
 | Reverb | Compliance gate | Adapter disabled by default | Enable only after API access and automated-use permission are confirmed |
 | Estate sales | Assisted import | Same JSON bridge | Add public listing fields and coordinates from local sale discoveries |
@@ -16,3 +16,8 @@ must establish that the item is local.
 
 No collector attempts to bypass a login challenge, rate limit, robot control,
 or marketplace access policy.
+
+The eBay sold-comparable lookup adapts the completed-items approach documented
+by `YosefHayim/ebay-mcp`; the application does not embed or run that MCP server.
+Playwright MCP can support an independently authorized browser sidecar or test
+workflow, but it does not grant accounts, cookies, permissions, or API access.

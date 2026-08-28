@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { verifyGitHubCollectorToken } from "@/lib/auth/github-oidc";
 import { scoreListing } from "@/lib/domain/scoring";
 
 const listingSchema = z.object({
@@ -42,13 +43,24 @@ const runSchema = z.object({
 const ingestSchema = z.object({
   listings: z.array(listingSchema).max(1000),
   results: z.array(runSchema).max(30),
+  comparables: z.record(z.string(), z.array(z.object({
+    soldPriceCents: z.number().int().positive(),
+    soldAt: z.string(),
+    modelMatch: z.enum(["exact", "family", "category"]),
+    condition: z.string().optional(),
+  }))).default({}),
 });
 
 export async function POST(request: Request) {
   const { env } = await import("cloudflare:workers");
   const expectedKey = process.env.INGEST_KEY;
   const suppliedKey = request.headers.get("x-ingest-key");
-  if (!expectedKey || suppliedKey !== expectedKey) {
+  const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const oidcAuthorized = bearer
+    ? await verifyGitHubCollectorToken(bearer).catch(() => false)
+    : false;
+  const keyAuthorized = Boolean(expectedKey && suppliedKey === expectedKey);
+  if (!oidcAuthorized && !keyAuthorized) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -59,7 +71,7 @@ export async function POST(request: Request) {
 
   const scored = parsed.data.listings.map((listing) => ({
     listing,
-    score: scoreListing(listing, []),
+    score: scoreListing(listing, parsed.data.comparables[listing.id] ?? []),
   }));
   const existing = scored.length
     ? await env.DB.batch(

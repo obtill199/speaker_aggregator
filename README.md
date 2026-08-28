@@ -20,8 +20,10 @@ inventory controls. The design rules live in [`DESIGN.md`](DESIGN.md).
 - Repair-risk reserves, mileage, shipping, and selling fees in the economics.
 - Official eBay Browse API collector, compliance-gated Reverb adapter, and an
   authorized JSON bridge for Facebook/estate-sale/manual discoveries.
-- Authenticated ingest, source-health history, Pushover Great Deal alerts, and a
-  GitHub Actions scan every six hours.
+- GitHub OIDC-authenticated ingest, source-health history, Pushover Great Deal
+  alerts, and a GitHub Actions scan every six hours.
+- A private family access code for the Garage while the listing dashboard can
+  remain publicly viewable.
 - Labeled demo inventory until the first successful live ingest.
 
 ## Local setup
@@ -34,8 +36,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Generate a long random `INGEST_KEY`. Add eBay developer credentials to enable
-the official collector. Never commit `.env.local` or marketplace credentials.
+Generate `INGEST_KEY` only for local/manual ingestion and `GARAGE_ACCESS_KEY`
+for the private repair workflow. Add eBay developer credentials to enable the
+official collector. Never commit `.env.local` or marketplace credentials.
 
 ```bash
 npm run lint
@@ -43,20 +46,27 @@ npm test
 npm run collect
 ```
 
-`npm run collect` is a safe dry run when `SOUND_ROOM_INGEST_URL` or
-`INGEST_KEY` is missing. Database migrations are under `drizzle/`.
+`npm run collect` is a safe dry run when local ingest credentials are missing.
+GitHub Actions obtains a short-lived OIDC token automatically. Database
+migrations are under `drizzle/`.
 
 ## Scheduled collection
 
-`.github/workflows/collect.yml` runs at minute 17 every sixth hour and can also
+.github/workflows/collect.yml` runs at minute 17 every sixth hour and can also
 be started manually. Configure these GitHub Actions secrets:
 
 - `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`
-- `SOUND_ROOM_INGEST_URL`, `INGEST_KEY`
 - optionally `PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`
+
+The workflow is pinned to this repository, branch, and workflow file by the
+site's OIDC verifier. No permanent ingestion secret is stored in GitHub.
 
 Facebook credentials are deliberately excluded from GitHub Actions. Follow the
 isolated sidecar instructions in [`collectors/facebook/README.md`](collectors/facebook/README.md).
+The sold-comparable adapter follows the approach demonstrated by
+[`YosefHayim/ebay-mcp`](https://github.com/YosefHayim/ebay-mcp). The supplied
+[`microsoft/playwright-mcp`](https://github.com/microsoft/playwright-mcp) is an
+optional authorized browser sidecar, not a source of marketplace credentials.
 
 ## Architecture
 

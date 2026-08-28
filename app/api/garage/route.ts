@@ -38,7 +38,27 @@ type GarageRow = {
 const jsonError = (message: string, status: number) =>
   Response.json({ error: message }, { status });
 
-export async function GET() {
+async function timingSafeEqual(left: string, right: string) {
+  const encoder = new TextEncoder();
+  const [leftHash, rightHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(left)),
+    crypto.subtle.digest("SHA-256", encoder.encode(right)),
+  ]);
+  const a = new Uint8Array(leftHash);
+  const b = new Uint8Array(rightHash);
+  let difference = 0;
+  for (let index = 0; index < a.length; index += 1) difference |= a[index] ^ b[index];
+  return difference === 0;
+}
+
+async function garageAuthorized(request: Request) {
+  const expected = process.env.GARAGE_ACCESS_KEY;
+  const supplied = request.headers.get("x-garage-key");
+  return Boolean(expected && supplied && await timingSafeEqual(expected, supplied));
+}
+
+export async function GET(request: Request) {
+  if (!await garageAuthorized(request)) return jsonError("Unauthorized", 401);
   const { env } = await import("cloudflare:workers");
   const result = await env.DB.prepare(
     `SELECT id, reference_key, title, stage, purchase_price_cents,
@@ -60,6 +80,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!await garageAuthorized(request)) return jsonError("Unauthorized", 401);
   const { env } = await import("cloudflare:workers");
   const parsed = createGarageItem.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return jsonError("Invalid garage item.", 400);
@@ -96,6 +117,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (!await garageAuthorized(request)) return jsonError("Unauthorized", 401);
   const { env } = await import("cloudflare:workers");
   const parsed = moveGarageItem.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return jsonError("Invalid stage update.", 400);

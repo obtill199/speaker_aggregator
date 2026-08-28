@@ -8,8 +8,17 @@ test("collector schedule runs every six hours off the hour", async () => {
   const workflow = await readFile(new URL(".github/workflows/collect.yml", root), "utf8");
   assert.match(workflow, /cron:\s*["']17 \*\/6 \* \* \*["']/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /secrets\.INGEST_KEY/);
+  assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /https:\/\/the-sound-room\.obtill199\.chatgpt\.site\/api\/ingest/);
+  assert.doesNotMatch(workflow, /secrets\.INGEST_KEY/);
   assert.doesNotMatch(workflow, /replace-with-a-long-random-value/);
+});
+
+test("public deployment keeps the Garage behind a separate family key", async () => {
+  const route = await readFile(new URL("app/api/garage/route.ts", root), "utf8");
+  assert.match(route, /GARAGE_ACCESS_KEY/);
+  assert.match(route, /x-garage-key/i);
+  assert.match(route, /timingSafeEqual/);
 });
 
 test("Facebook sidecar keeps credentials out of its checked-in config", async () => {

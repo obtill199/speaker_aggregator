@@ -3,25 +3,27 @@
 ## First live scan checklist
 
 1. Deploy the site and apply both SQL migrations in `drizzle/` to its D1 database.
-2. Set a long random `INGEST_KEY` in the site runtime.
-3. Add the same key, the deployed `/api/ingest` URL, and eBay credentials as
-   GitHub Actions secrets.
-4. Run **Scan vintage audio listings** manually in GitHub Actions.
+2. Set a random `GARAGE_ACCESS_KEY` in the site runtime.
+3. Add `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` as GitHub Actions secrets.
+4. Run **Scan vintage audio listings** manually in GitHub Actions. The job uses
+   a short-lived GitHub OIDC token to authenticate to the fixed ingest URL.
 5. Confirm the job says `Published … matches`, the dashboard changes to **Live
    inventory**, and `/api/health` reports the collector run.
 6. Add Pushover secrets only after ingestion works.
 
-The site access policy must allow the GitHub runner to reach `/api/ingest`.
-Keeping the deployment owner-only is safest for evaluation, but an external
-scheduled runner cannot cross that access gate. Make this decision explicitly
-before enabling live ingestion.
+The public dashboard allows the GitHub runner to reach `/api/ingest`; that
+endpoint accepts only a valid token for this repository's main-branch collector
+workflow (or an optional local `INGEST_KEY`). The Garage remains independently
+protected by `GARAGE_ACCESS_KEY`.
 
 ## Health and recovery
 
 - **eBay says Add keys:** credentials are absent from the runner.
 - **eBay is degraded:** inspect the Action log for rate limiting or a rejected
   search. One failed brand query does not discard other results.
-- **Ingest returns 401:** runtime and GitHub `INGEST_KEY` values do not match.
+- **Ingest returns 401:** confirm the workflow has `id-token: write` and its
+  repository, branch, workflow filename, audience, and fixed ingest URL match
+  the verifier.
 - **Dashboard remains in demo mode:** verify migrations and inspect the ingest
   response. Demo mode is the expected empty-database fallback.
 - **No Great Deal alerts:** a listing needs a price and defensible sold comps.
@@ -39,7 +41,8 @@ normalization. The UI reads the most recent run for each source.
 - Keep all secrets in the site environment, GitHub Actions secrets, or a local
   untracked environment file.
 - Do not place Facebook credentials in this repository or GitHub Actions.
-- Rotate `INGEST_KEY` immediately if it appears in a log or commit.
+- Rotate `GARAGE_ACCESS_KEY` immediately if it is exposed. Rotate a local
+  `INGEST_KEY` too if that optional fallback is enabled and exposed.
 - Leave `REVERB_ENABLED=false` until access and automated-use permission are
   confirmed.
 

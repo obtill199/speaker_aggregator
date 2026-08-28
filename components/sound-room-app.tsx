@@ -64,6 +64,7 @@ type SourceHealth = {
   source: string;
   status: "healthy" | "degraded" | "failed" | "disabled" | "setup";
   label: string;
+  finishedAt?: string | null;
 };
 
 const gradeLabels = {
@@ -325,7 +326,10 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
   const [source, setSource] = useState("all");
   const [selected, setSelected] = useState<DemoListing | null>(null);
   const [garage, setGarage] = useState<GarageItem[]>([]);
-  const [lastScan, setLastScan] = useState("1:00 AM");
+  const [garageKey, setGarageKey] = useState("");
+  const [garageKeyDraft, setGarageKeyDraft] = useState("");
+  const [garageError, setGarageError] = useState("");
+  const [lastScan, setLastScan] = useState("Checking…");
   const [inventoryMode, setInventoryMode] = useState<"demo" | "live">("demo");
   const [sourceHealth, setSourceHealth] = useState<SourceHealth[]>([
     { source: "ebay", status: "setup", label: "Add keys" },
@@ -335,21 +339,50 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
   ]);
 
   useEffect(() => {
+    const savedGarageKey = window.localStorage.getItem("sound-room-garage-key") ?? "";
+    if (savedGarageKey) queueMicrotask(() => setGarageKey(savedGarageKey));
     Promise.allSettled([
-      fetch("/api/garage").then((response) => response.ok ? response.json() : Promise.reject()),
       fetch("/api/listings").then((response) => response.ok ? response.json() : Promise.reject()),
       fetch("/api/health").then((response) => response.ok ? response.json() : Promise.reject()),
-    ]).then(([garageResult, listingResult, healthResult]) => {
-      if (garageResult.status === "fulfilled") setGarage(garageResult.value.items ?? []);
+    ]).then(([listingResult, healthResult]) => {
       if (listingResult.status === "fulfilled" && listingResult.value.items?.length) {
         setListings(listingResult.value.items);
         setInventoryMode(listingResult.value.mode === "live" ? "live" : "demo");
       }
       if (healthResult.status === "fulfilled" && healthResult.value.items?.length) {
         setSourceHealth(healthResult.value.items);
+        const latest = healthResult.value.items
+          .map((item: SourceHealth) => item.finishedAt ? Date.parse(item.finishedAt) : 0)
+          .reduce((maximum: number, value: number) => Math.max(maximum, value), 0);
+        setLastScan(latest
+          ? new Date(latest).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          : "Awaiting first run");
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!garageKey) return;
+    fetch("/api/garage", { headers: { "X-Garage-Key": garageKey } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Access code not recognized.")))
+      .then((payload) => {
+        setGarage(payload.items ?? []);
+        setGarageError("");
+        window.localStorage.setItem("sound-room-garage-key", garageKey);
+      })
+      .catch((error: Error) => {
+        setGarageError(error.message);
+        setGarageKey("");
+        window.localStorage.removeItem("sound-room-garage-key");
+      });
+  }, [garageKey]);
+
+  const unlockGarage = () => {
+    const candidate = garageKeyDraft.trim();
+    if (!candidate) return;
+    setGarageError("");
+    setGarageKey(candidate);
+  };
 
   const brands = useMemo(() => [...new Set(listings.map((item) => item.brand).filter(Boolean))] as string[], [listings]);
   const sources = useMemo(() => [...new Set(listings.map((item) => item.source))], [listings]);
@@ -365,6 +398,12 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
   const potentialProfit = listings.reduce((sum, listing) => sum + Math.max(0, listing.score.expectedProfitCents ?? 0), 0);
 
   const saveListing = async (listing: DemoListing) => {
+    if (!garageKey) {
+      setSelected(null);
+      setView("garage");
+      setGarageError("Enter the Garage access code before saving equipment.");
+      return;
+    }
     if (garage.some((item) => item.listingId === listing.id)) return;
     const item: GarageItem = {
       id: `garage_${listing.id}`,
@@ -378,7 +417,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
     setGarage((current) => [...current, item]);
     await fetch("/api/garage", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Garage-Key": garageKey },
       body: JSON.stringify(item),
     }).catch(() => undefined);
   };
@@ -387,7 +426,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
     setGarage((current) => current.map((entry) => entry.id === item.id ? { ...entry, stage } : entry));
     await fetch("/api/garage", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Garage-Key": garageKey },
       body: JSON.stringify({ id: item.id, stage }),
     }).catch(() => undefined);
   };
@@ -397,7 +436,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
       <header className="receiver-header">
         <div className="brand-lockup"><div className="brand-mark"><Radio /></div><div><span>Vintage audio finder</span><h1>The Sound Room</h1></div></div>
         <div className="tuner-display"><span>UDALL 67146</span><div className="tuner-scale"><i /><i /><i /><i /><i /><i /><i /><i /><i /></div><strong>250 MI</strong></div>
-        <div className="scan-status"><span className="status-lamp status-lamp-live" /><div><small>Last scan</small><strong>{lastScan}</strong></div><Button size="sm" variant="outline" onClick={() => setLastScan(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }))}>Scan now</Button></div>
+        <div className="scan-status"><span className="status-lamp status-lamp-live" /><div><small>Last scan</small><strong>{lastScan}</strong></div><Button size="sm" variant="outline" onClick={() => window.location.reload()}>Refresh</Button></div>
       </header>
 
       <div className="demo-notice"><span>{inventoryMode === "live" ? "Live inventory" : "Demo inventory"}</span> {inventoryMode === "live" ? "Marketplace scans are feeding this dashboard." : "The working dashboard is live. Marketplace credentials will replace these labeled examples with fresh scans."}</div>
@@ -435,7 +474,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
             <TabsContent value="new"><div className="surface-heading"><div><span className="eyebrow">Since the last scan</span><h2>New on the dial</h2></div><p>{newListings.length} matches surfaced from configured sources.</p></div><div className="listing-grid">{newListings.map((listing) => <ListingCard key={listing.id} listing={listing} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
             <TabsContent value="all"><div className="surface-heading"><div><span className="eyebrow">Complete inventory</span><h2>All matching equipment</h2></div><p>{filtered.length} listings after filters.</p></div><div className="listing-grid">{filtered.map((listing) => <ListingCard key={listing.id} listing={listing} onInspect={() => setSelected(listing)} />)}</div></TabsContent>
             <TabsContent value="map"><RadarMap listings={filtered} onInspect={setSelected} /></TabsContent>
-            <TabsContent value="garage"><div className="surface-heading"><div><span className="eyebrow">Repair and resale workflow</span><h2>The Garage</h2></div><p>Save a listing, then track it from first contact through sale.</p></div><GarageBoard items={garage} listings={listings} onMove={moveGarageItem} /></TabsContent>
+            <TabsContent value="garage"><div className="surface-heading"><div><span className="eyebrow">Repair and resale workflow</span><h2>The Garage</h2></div><p>Save a listing, then track it from first contact through sale.</p></div>{garageKey ? <GarageBoard items={garage} listings={listings} onMove={moveGarageItem} /> : <section className="garage-gate"><Warehouse /><div><span className="eyebrow">Private repair bench</span><h3>Unlock the Garage</h3><p>Live listings are public. Repair projects stay behind the family access code.</p></div><div className="garage-key-form"><Input type="password" value={garageKeyDraft} onChange={(event) => setGarageKeyDraft(event.target.value)} onKeyDown={(event) => event.key === "Enter" && unlockGarage()} placeholder="Garage access code" aria-label="Garage access code" /><Button onClick={unlockGarage}>Unlock</Button></div>{garageError && <p className="garage-error" role="alert">{garageError}</p>}</section>}</TabsContent>
           </div>
         </div>
       </Tabs>
