@@ -21,6 +21,12 @@ test("public deployment keeps the Garage behind a separate family key", async ()
   assert.match(route, /sameSecret/);
 });
 
+test("listings API keeps estate-sale whole-house leads out of the feed", async () => {
+  const route = await readFile(new URL("app/api/listings/route.ts", root), "utf8");
+  assert.match(route, /source != 'estatesales'/);
+  assert.match(route, /category != 'estate-lead'/);
+});
+
 test("GitHub Pages has a self-contained static preview", async () => {
   const page = await readFile(new URL("docs/index.html", root), "utf8");
   assert.match(page, /The Sound Room/);
@@ -44,6 +50,7 @@ test("operational documentation preserves compliance and scoring safeguards", as
     readFile(new URL("docs/SCORING.md", root), "utf8"),
   ]);
   assert.match(sources, /No collector attempts to bypass/i);
+  assert.match(sources, /EstateSales\.net was removed/);
   assert.match(scoring, /Needs Review/);
   assert.match(scoring, /lower quartile/i);
 });

@@ -36,6 +36,10 @@ export const EXCLUDED_TERMS = [
   "earbud",
   "empty cabinet",
   "speaker stand",
+  "estate sale",
+  "estate sales",
+  "estatesale",
+  "estate auction",
 ] as const;
 
 export const VINTAGE_CUTOFF_YEAR = 2000;

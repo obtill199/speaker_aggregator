@@ -64,6 +64,7 @@ export async function GET(request: Request) {
   const { env } = await import("cloudflare:workers");
   const result = await env.DB.prepare(
     `SELECT * FROM listings WHERE status = 'active'
+     AND source != 'estatesales' AND category != 'estate-lead'
      ORDER BY COALESCE(deal_score, -1) DESC, last_seen_at DESC LIMIT 500`,
   ).all<ListingRow>();
 

@@ -57,6 +57,19 @@ test("excludes irrelevant modern audio and out-of-radius listings", async () => 
   assert.match(distant.exclusionReason, /outside-250-mile-radius/);
 });
 
+test("excludes whole-house estate sale leads", async () => {
+  const { normalizeListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
+  const sale = normalizeListing({
+    source: "estatesales",
+    sourceListingId: "yukon",
+    url: "https://www.estatesales.net/example",
+    title: "Estate sale: Yukon Sale",
+    location: "Yukon, OK",
+  });
+  assert.equal(sale.excluded, true);
+  assert.equal(sale.exclusionReason, "estate sale");
+});
+
 test("deduplicates exact IDs and probable cross-posts", async () => {
   const { deduplicateListings, normalizeListing } = await vite.ssrLoadModule(
     "/lib/domain/listing.ts",
