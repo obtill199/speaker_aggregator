@@ -335,7 +335,6 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
     { source: "ebay", status: "setup", label: "Add keys" },
     { source: "facebook", status: "setup", label: "Setup" },
     { source: "reverb", status: "healthy", label: "Ready" },
-    { source: "estatesales", status: "healthy", label: "Ready" },
   ]);
 
   const loadGarage = useCallback(async (key: string) => {
@@ -363,11 +362,18 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
       fetch("/api/health").then((response) => response.ok ? response.json() : Promise.reject()),
     ]).then(([listingResult, healthResult]) => {
       if (listingResult.status === "fulfilled" && listingResult.value.items?.length) {
-        setListings(listingResult.value.items);
-        setInventoryMode(listingResult.value.mode === "live" ? "live" : "demo");
+        const items = (listingResult.value.items as DemoListing[]).filter(
+          (item) => item.source !== "estatesales" && item.category !== "estate-lead",
+        );
+        if (items.length) {
+          setListings(items);
+          setInventoryMode(listingResult.value.mode === "live" ? "live" : "demo");
+        }
       }
       if (healthResult.status === "fulfilled" && healthResult.value.items?.length) {
-        setSourceHealth(healthResult.value.items);
+        setSourceHealth(
+          (healthResult.value.items as SourceHealth[]).filter((item) => item.source !== "estatesales"),
+        );
         const finished = healthResult.value.items
           .map((item: SourceHealth) => item.finishedAt)
           .filter(Boolean)

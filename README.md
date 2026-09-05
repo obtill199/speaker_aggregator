@@ -18,8 +18,7 @@ inventory controls. The design rules live in [`DESIGN.md`](DESIGN.md).
 - Explainable Great / Good / Average / No Deal / Bad gauge. Missing price or
   defensible sold comps produces **Needs Review**, never a made-up score.
 - Repair-risk reserves, mileage, shipping, and selling fees in the economics.
-- Official eBay Browse API collector, public Reverb listings, low-frequency
-  EstateSales.net sale summaries, and an authorized Facebook JSON bridge.
+- Official eBay Browse API collector, public Reverb listings, and an authorized Facebook JSON bridge.
 - Authenticated ingest, source-health history, Pushover Great Deal alerts, and a
   GitHub Actions scan every six hours.
 - Labeled demo inventory until the first successful live ingest.
@@ -59,7 +58,7 @@ secrets:
 - optionally `REVERB_TOKEN` (public listing searches work without it)
 - optionally `PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`
 
-Reverb and EstateSales.net begin working without credentials. Facebook
+Reverb begins working without credentials. Facebook
 credentials are deliberately excluded from GitHub Actions. Follow the
 isolated sidecar instructions in [`collectors/facebook/README.md`](collectors/facebook/README.md).
 

@@ -24,7 +24,7 @@ account controls.
    npm run collect
    ```
 
-   The same command also refreshes Reverb and estate-sale data. Run it every
+   The same command also refreshes Reverb (and eBay if keys are present). Run it every
    six hours with the workstation's scheduler only after confirming the
    upstream monitor is permitted and stable for the account.
 

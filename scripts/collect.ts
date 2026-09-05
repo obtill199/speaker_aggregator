@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 
 import { sendGreatDealAlerts } from "../lib/alerts/pushover";
 import { EbayCollector } from "../lib/collectors/ebay";
-import { EstateSalesCollector } from "../lib/collectors/estate-sales";
 import { ManualCollector } from "../lib/collectors/manual";
 import { ReverbCollector } from "../lib/collectors/reverb";
 import { runCollectors } from "../lib/collectors/run";
@@ -47,7 +46,6 @@ async function main() {
   const collectors: Collector[] = [
     new EbayCollector(),
     new ReverbCollector(),
-    new EstateSalesCollector(),
   ];
   const imported = await importedListings();
   if (imported.length) collectors.push(new ManualCollector(imported));

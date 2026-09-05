@@ -78,7 +78,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid collector payload", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const scored = parsed.data.listings.map((listing) => ({
+  const scored = parsed.data.listings
+    .filter((listing) => listing.source !== "estatesales" && listing.category !== "estate-lead")
+    .map((listing) => ({
     listing,
     score: scoreListing(listing, parsed.data.comparables[listing.id] ?? []),
   }));
@@ -152,7 +154,9 @@ export async function POST(request: Request) {
     ),
   );
 
-  const runWrites = parsed.data.results.map((run) =>
+  const runWrites = parsed.data.results
+    .filter((run) => run.source !== "estatesales")
+    .map((run) =>
     env.DB.prepare(
       `INSERT INTO collector_runs
        (id, source, started_at, finished_at, status, discovered_count, upserted_count, error_message)
@@ -169,9 +173,11 @@ export async function POST(request: Request) {
     ),
   );
 
-  if (listingWrites.length || runWrites.length) {
-    await env.DB.batch([...listingWrites, ...runWrites]);
-  }
+  const retireEstates = env.DB.prepare(
+    `UPDATE listings SET status = 'withdrawn' WHERE source = 'estatesales' OR category = 'estate-lead'`,
+  );
+
+  await env.DB.batch([retireEstates, ...listingWrites, ...runWrites]);
 
   const greatDeals = scored
     .filter(({ listing, score }) => newIds.has(listing.id) && score.grade === "great")

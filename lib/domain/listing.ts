@@ -89,9 +89,6 @@ export function identifyBrand(text: string) {
 
 export function classifyCategory(text: string): ListingCategory {
   const normalized = normalizeText(text);
-  if (/estate sale|auction|whole house|sale preview/.test(normalized)) {
-    return "estate-lead";
-  }
   if (/receiver|amplifier|integrated amp|stereo amp|tuner/.test(normalized)) {
     return "receiver";
   }

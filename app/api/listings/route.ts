@@ -73,7 +73,9 @@ export async function GET(request: Request) {
 
   return publicJson(request, {
     mode: "live",
-    items: result.results.map((row, index) => ({
+    items: result.results
+      .filter((row) => row.source !== "estatesales" && row.category !== "estate-lead")
+      .map((row, index) => ({
       id: row.id,
       source: row.source,
       sourceListingId: row.source_listing_id,

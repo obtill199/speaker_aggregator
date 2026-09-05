@@ -9,7 +9,6 @@ const defaults = [
   { source: "ebay", status: "setup", label: "Add keys" },
   { source: "facebook", status: "setup", label: "Setup" },
   { source: "reverb", status: "healthy", label: "Ready" },
-  { source: "estatesales", status: "healthy", label: "Ready" },
 ];
 
 export async function GET(request: Request) {
@@ -22,13 +21,15 @@ export async function GET(request: Request) {
 
   if (!result.results.length) return publicJson(request, { items: defaults });
 
-  const items = result.results.map((row) => ({
-    source: row.source,
-    status: row.status,
-    label: row.status === "healthy" ? "Healthy" : row.status === "failed" ? "Failed" : "Check",
-    finishedAt: row.finished_at ? new Date(row.finished_at).toISOString() : null,
-    message: row.error_message,
-  }));
+  const items = result.results
+    .filter((row) => row.source !== "estatesales")
+    .map((row) => ({
+      source: row.source,
+      status: row.status,
+      label: row.status === "healthy" ? "Healthy" : row.status === "failed" ? "Failed" : "Check",
+      finishedAt: row.finished_at ? new Date(row.finished_at).toISOString() : null,
+      message: row.error_message,
+    }));
   return publicJson(request, { items });
 }
 import { publicJson } from "@/lib/http/cors";

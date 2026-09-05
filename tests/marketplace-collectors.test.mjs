@@ -14,31 +14,10 @@ const vite = await createServer({
 
 after(async () => vite.close());
 
-test("parses EstateSales.net public state into geofenced sale leads", async () => {
-  const { parseEstateSalePage } = await vite.ssrLoadModule("/lib/collectors/estate-sales.ts");
-  const html = `<script id="estatesales-net-state" type="application/json">${JSON.stringify({
-    NGRX_STATE: { ui: { sales: { saleRows: { "123": {
-      id: 123,
-      name: "Mid-century estate sale",
-      cityName: "Wichita",
-      stateCode: "KS",
-      postalCodeNumber: "67202",
-      latitude: 37.6872,
-      longitude: -97.3301,
-      typeName: "Estate Sale",
-      pictureCount: 80,
-      firstUtcStartDate: { _value: "2026-08-29T14:00:00Z" },
-    } } } } },
-  })}</script>`;
-  const [raw] = parseEstateSalePage(html);
-  assert.equal(raw.source, "estatesales");
-  assert.match(raw.url, /\/KS\/Wichita\/67202\/123$/);
-
-  const { normalizeListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
-  const normalized = normalizeListing(raw);
-  assert.equal(normalized.category, "estate-lead");
-  assert.equal(normalized.excluded, false);
-  assert.ok(normalized.distanceMiles < 60);
+test("does not keep estate-sale whole-house leads as a listing category", async () => {
+  const { classifyCategory } = await vite.ssrLoadModule("/lib/domain/listing.ts");
+  assert.equal(classifyCategory("Estate sale preview — Marantz receiver"), "receiver");
+  assert.equal(classifyCategory("JBL L100 Century speakers"), "speaker");
 });
 
 test("maps public Reverb results into normalized USD listings", async () => {
