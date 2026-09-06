@@ -23,10 +23,9 @@ test("public deployment keeps the Garage behind a separate family key", async ()
 
 test("listings API keeps estate-sale whole-house leads out of the feed", async () => {
   const route = await readFile(new URL("app/api/listings/route.ts", root), "utf8");
-  assert.match(route, /source != 'estatesales'/);
-  assert.match(route, /category != 'estate-lead'/);
+  assert.match(route, /category = 'speaker'/);
   assert.match(route, /tom mount/);
-  assert.match(route, /home theater/);
+  assert.match(route, /stereo receiver/);
 });
 
 test("GitHub Pages has a self-contained static preview", async () => {
@@ -43,6 +42,8 @@ test("Facebook sidecar keeps credentials out of its checked-in config", async ()
   const config = await readFile(new URL("collectors/facebook/config.example.toml", root), "utf8");
   assert.match(config, /search_city = "wichita"/);
   assert.match(config, /search_interval = "6h"/);
+  assert.match(config, /vintage_speakers/);
+  assert.doesNotMatch(config, /vintage_receivers/);
   assert.doesNotMatch(config, /^\s*(username|password)\s*=/m);
 });
 
@@ -53,7 +54,7 @@ test("operational documentation preserves compliance and scoring safeguards", as
   ]);
   assert.match(sources, /No collector attempts to bypass/i);
   assert.match(sources, /EstateSales\.net was removed/);
-  assert.match(sources, /home-theater AVRs are dropped/);
+  assert.match(sources, /speakers only/i);
   assert.match(scoring, /Needs Review/);
   assert.match(scoring, /lower quartile/i);
 });

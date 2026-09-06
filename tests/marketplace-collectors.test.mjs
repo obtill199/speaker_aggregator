@@ -97,7 +97,7 @@ test("retries one transient Reverb failure without degrading the whole source", 
 
 test("GitHub Pages CORS is exact and does not open the API to arbitrary origins", async () => {
   const { publicJson } = await vite.ssrLoadModule("/lib/http/cors.ts");
-  const allowed = publicJson(new Request("https://example.com", { headers: { Origin: { Origin: "https://obtill199.github.io" } } }), { ok: true });
+  const allowed = publicJson(new Request("https://example.com", { headers: { Origin: "https://obtill199.github.io" } }), { ok: true });
   const blocked = publicJson(new Request("https://example.com", { headers: { Origin: "https://evil.example" } }), { ok: true });
   assert.equal(allowed.headers.get("access-control-allow-origin"), "https://obtill199.github.io");
   assert.equal(blocked.headers.get("access-control-allow-origin"), null);

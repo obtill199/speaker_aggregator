@@ -2,10 +2,12 @@
 
 | Source | State | Collection path | Notes |
 |---|---|---|---|
-| eBay | Ready after credentials | Official OAuth + Browse API | Local-pickup query centered on ZIP 67146 with a 250-mile radius |
-| Facebook Marketplace | Opt-in sidecar | `ai-marketplace-monitor` + authorized JSON bridge | Runs separately; no credentials stored in the app |
-| Reverb | Live | Public Reverb listings endpoint; optional personal token | Brand + vintage speaker/stereo-receiver searches, USD, ships-to-US. Parts, drum hardware, loose drivers, and home-theater AVRs are dropped |
+| eBay | Ready after credentials | Official OAuth + Browse API | Local-pickup speaker searches centered on ZIP 67146 with a 250-mile radius |
+| Facebook Marketplace | Opt-in sidecar | `ai-marketplace-monitor` + authorized JSON bridge | Speaker phrases only; no receiver searches |
+| Reverb | Live | Public Reverb listings endpoint; optional personal token | JBL, Klipsch, Advent, and Pioneer vintage speaker searches. USD, ships-to-US. Receivers, parts, and drivers are dropped |
 | US Audio Mart / other sellers | Assisted import | Same JSON bridge | Normalization, geofence, and dedupe still apply |
+
+The board is speakers only. Receivers are no longer collected or shown.
 
 EstateSales.net was removed as a source. Whole-house sale leads were too noisy for FIL and are no longer collected or shown.
 
