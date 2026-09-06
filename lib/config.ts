@@ -42,6 +42,35 @@ export const EXCLUDED_TERMS = [
   "estate auction",
 ] as const;
 
+// Title-only. Descriptions of real gear often mention knobs, lamps, or recaps.
+export const ACCESSORY_TITLE_TERMS = [
+  "tom mount",
+  "tom holder",
+  "drum mount",
+  "horn adapter",
+  "fuse lamp",
+  "fuse style",
+  "led lamp",
+  "dial lamp",
+  "lamp kit",
+  "grille cloth",
+  "speaker cable",
+  "patch cable",
+  "remote only",
+  "faceplate only",
+  "guitar speaker",
+  "bass speaker",
+  "replacement speaker",
+  "compression driver",
+  "speaker basket",
+  "picture frame",
+  "album display",
+  "home theater",
+  "av receiver",
+  "a v receiver",
+  "diversity receiver",
+] as const;
+
 export const VINTAGE_CUTOFF_YEAR = 2000;
 
 export const SOURCE_LABELS = {

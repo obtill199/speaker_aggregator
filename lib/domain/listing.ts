@@ -1,4 +1,5 @@
 import {
+  ACCESSORY_TITLE_TERMS,
   EXCLUDED_TERMS,
   SEARCH_CENTER,
   VINTAGE_CUTOFF_YEAR,
@@ -112,9 +113,49 @@ export function isVintageListing(text: string, brand: string | null) {
   return Boolean(brand && /wood|silver face|silverface|stereo|classic/.test(normalized));
 }
 
-export function exclusionReason(text: string) {
-  const normalized = normalizeText(text);
-  return EXCLUDED_TERMS.find((term) => normalized.includes(term)) ?? null;
+function isKnownSpeakerFamily(normalizedTitle: string) {
+  return /heresy|la scala|lascala|cornwall|belle|khorn|k horn|l ?100|l ?96|l ?112|l ?166|hpm|century|legacy|graduate/.test(
+    normalizedTitle,
+  );
+}
+
+function isLooseDriverTitle(normalizedTitle: string) {
+  if (isKnownSpeakerFamily(normalizedTitle)) return false;
+  if (/\b(pair|speakers|bookshelf|floor standing|loudspeakers|tower)\b/.test(normalizedTitle)) {
+    return false;
+  }
+  if (/\b(receiver|amplifier|integrated)\b/.test(normalizedTitle)) return false;
+  if (
+    /\b(woofer|tweeter|compression driver|guitar speaker|replacement speaker|speaker basket)\b/.test(
+      normalizedTitle,
+    )
+  ) {
+    return true;
+  }
+  return (
+    /\b(\d+\s*(inch|in)|15|12|10|8)\b/.test(normalizedTitle) &&
+    /\b(speaker|woofer|tweeter|driver|horn)\b/.test(normalizedTitle)
+  );
+}
+
+function titlePatternExclusion(normalizedTitle: string) {
+  if (/\b(\d+\s*)?hole receiver\b/.test(normalizedTitle)) return "drum-hardware";
+  if (/\btom (mount|holder)\b/.test(normalizedTitle)) return "drum-hardware";
+  if (/\bdiversity receiver\b/.test(normalizedTitle)) return "wireless-receiver";
+  if (/\b(htr|rx v|vsx|avr)\b/.test(normalizedTitle)) return "home-theater-receiver";
+  if (/\b\d\s+\d\s+channel\b/.test(normalizedTitle)) return "home-theater-receiver";
+  if (isLooseDriverTitle(normalizedTitle)) return "loose-driver";
+  return null;
+}
+
+export function exclusionReason(title: string, description = "") {
+  const titleNorm = normalizeText(title);
+  const combined = normalizeText(`${title} ${description}`);
+  const combinedHit = EXCLUDED_TERMS.find((term) => combined.includes(term));
+  if (combinedHit) return combinedHit;
+  const titleHit = ACCESSORY_TITLE_TERMS.find((term) => titleNorm.includes(term));
+  if (titleHit) return titleHit;
+  return titlePatternExclusion(titleNorm);
 }
 
 export function distanceMiles(
@@ -142,7 +183,7 @@ function parsePostedAt(value: RawListing["postedAt"]) {
 export function normalizeListing(raw: RawListing, now = new Date()): NormalizedListing {
   const combined = `${raw.title} ${raw.description ?? ""}`;
   const brand = identifyBrand(combined);
-  const reason = exclusionReason(combined);
+  const reason = exclusionReason(raw.title, raw.description ?? "");
   const distance =
     raw.latitude != null && raw.longitude != null
       ? distanceMiles(SEARCH_CENTER, {

@@ -1,5 +1,6 @@
 import { WATCH_RULES } from "@/lib/config";
 import type { RawListing } from "@/lib/domain/listing";
+import { exclusionReason } from "@/lib/domain/listing";
 import type { Collector, CollectorContext, CollectorResult } from "./types";
 
 type ReverbListing = {
@@ -21,6 +22,7 @@ function stripHtml(value = "") {
 
 function toRaw(item: ReverbListing): RawListing | null {
   if (item.price?.currency && item.price.currency !== "USD") return null;
+  if (exclusionReason(item.title, stripHtml(item.description))) return null;
   const shipping = item.shipping?.rates?.find((rate) => rate.region_code === "US_CON")?.rate;
   return {
     source: "reverb",
@@ -56,7 +58,17 @@ export class ReverbCollector implements Collector {
     const listings: RawListing[] = [];
     const warnings: string[] = [];
     for (const rule of WATCH_RULES) {
-      const params = new URLSearchParams({ query: `${rule.brand} vintage ${rule.category === "speaker" ? "speaker" : "receiver"}`, per_page: "40" });
+      const query =
+        rule.category === "speaker"
+          ? `${rule.brand} vintage speakers`
+          : `${rule.brand} vintage stereo receiver`;
+      const params = new URLSearchParams({
+        query,
+        make: rule.brand,
+        per_page: "40",
+        ships_to: "US",
+        currency: "USD",
+      });
       const response = await fetchReverb(
         context,
         `https://api.reverb.com/api/listings/all?${params}`,
