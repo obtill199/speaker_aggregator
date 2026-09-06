@@ -11,18 +11,14 @@ export const WATCH_RULES = [
   { category: "speaker", brand: "Klipsch", aliases: ["klipsch", "klipsh"] },
   { category: "speaker", brand: "Advent", aliases: ["advent"] },
   { category: "speaker", brand: "Pioneer", aliases: ["pioneer", "pioner"] },
-  { category: "receiver", brand: "Sansui", aliases: ["sansui"] },
-  { category: "receiver", brand: "Pioneer", aliases: ["pioneer", "pioner"] },
-  { category: "receiver", brand: "Marantz", aliases: ["marantz"] },
-  { category: "receiver", brand: "Yamaha", aliases: ["yamaha"] },
 ] as const;
 
 export const VINTAGE_TERMS = [
   "vintage",
   "classic",
   "stereo",
-  "receiver",
   "loudspeaker",
+  "speakers",
   "wood cabinet",
   "bookshelf speaker",
   "floor speaker",

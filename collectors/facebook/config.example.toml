@@ -10,13 +10,7 @@ seller_locations = ["Wichita", "Derby", "Winfield", "Arkansas City", "Hutchinson
 exclude_sellers = []
 
 [item.vintage_speakers]
-search_phrases = ["JBL vintage speakers", "Klipsch vintage speakers", "Klipsh speakers", "Advent speakers", "Pioneer vintage speakers", "Pioner speakers"]
+search_phrases = ["JBL vintage speakers", "Klipsch vintage speakers", "Klipsh speakers", "Advent speakers", "Pioneer vintage speakers", "Pioner speakers", "JBL L100", "Klipsch Heresy"]
 search_city = "wichita"
 seller_locations = []
-antikeywords = ["bluetooth", "soundbar", "car audio", "empty cabinet", "speaker stand", "guitar speaker", "horn adapter"]
-
-[item.vintage_receivers]
-search_phrases = ["Sansui receiver", "Pioneer receiver", "Pioner receiver", "Marantz receiver", "Yamaha vintage receiver"]
-search_city = "wichita"
-seller_locations = []
-antikeywords = ["bluetooth", "car stereo", "remote only", "home theater", "tom mount", "diversity receiver"]
+antikeywords = ["bluetooth", "soundbar", "car audio", "empty cabinet", "speaker stand", "guitar speaker", "horn adapter", "receiver", "amplifier"]

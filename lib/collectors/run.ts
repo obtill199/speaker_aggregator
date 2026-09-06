@@ -1,4 +1,4 @@
-import { deduplicateListings, normalizeListing } from "@/lib/domain/listing";
+import { deduplicateListings, isSpeakerListing, normalizeListing } from "@/lib/domain/listing";
 import type { Collector, CollectorResult } from "./types";
 
 export async function runCollectors(
@@ -28,6 +28,8 @@ export async function runCollectors(
       !listing.excluded &&
       listing.source !== "estatesales" &&
       listing.category !== "estate-lead" &&
+      listing.category === "speaker" &&
+      isSpeakerListing(listing.title) &&
       Boolean(listing.brand) &&
       listing.isVintage,
   );
