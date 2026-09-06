@@ -103,10 +103,10 @@ test("drops Reverb parts, drum hardware, loose drivers, and AVRs", async () => {
   const { normalizeListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
   const cases = [
     ["(10) Green LED 8V Fuse Style Lamps for Sansui, Pioneer, Marantz", "fuse style"],
-    ["Yamaha 2-Hole Receiver Double Tom Mount Holder Post - Vintage", "drum-hardware"],
+    ["Yamaha 2-Hole Receiver Double Tom Mount Holder Post - Vintage", "tom mount"],
     ["JBL D123 12\" vintage speaker", "loose-driver"],
     ["Yamaha HTR-5730 Receiver HiFi Stereo Vintage 5.1 Channel Home Theater Audio AVR", "home theater"],
-    ["Pioneer VSX-D503S AV Receiver 1994", "home-theater-receiver"],
+    ["Pioneer VSX-D503S AV Receiver 1994", "av receiver"],
     ["JBL Horn Adapter 1\u201d To 1 3/8\u201d throat", "horn adapter"],
   ];
   for (const [title, reason] of cases) {
