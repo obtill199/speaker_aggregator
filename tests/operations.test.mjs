@@ -35,6 +35,7 @@ test("GitHub Pages has a self-contained static preview", async () => {
   assert.match(page, /GitHub preview/);
   assert.match(page, /the-sound-room\.obtill199\.chatgpt\.site/);
   assert.match(page, /api\/listings/);
+  assert.match(page, /filter\(item=>item\.category==="speaker"\)/);
   assert.doesNotMatch(page, /<script[^>]+src=/i);
 });
 
