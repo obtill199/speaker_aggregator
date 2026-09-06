@@ -1,5 +1,5 @@
 import { DEMO_LISTINGS } from "@/lib/data/demo";
-import { exclusionReason, isSpeakerListing } from "@/lib/domain/listing";
+import { exclusionReason, isSpeakerListing, isVintageListing } from "@/lib/domain/listing";
 import type { ScoreResult } from "@/lib/domain/scoring";
 import { publicJson } from "@/lib/http/cors";
 
@@ -61,7 +61,9 @@ function storedScore(row: ListingRow): ScoreResult {
   };
 }
 
-const speakerDemo = DEMO_LISTINGS.filter((item) => isSpeakerListing(item.title));
+const speakerDemo = DEMO_LISTINGS.filter(
+  (item) => isSpeakerListing(item.title) && isVintageListing(item.title, item.description),
+);
 
 export async function GET(request: Request) {
   const { env } = await import("cloudflare:workers");
@@ -77,6 +79,8 @@ export async function GET(request: Request) {
      AND lower(title) NOT LIKE '%diversity receiver%'
      AND lower(title) NOT LIKE '%stereo receiver%'
      AND lower(title) NOT LIKE '%av receiver%'
+     AND lower(title) NOT LIKE '%partybox%'
+     AND lower(title) NOT LIKE '%soundbar%'
      ORDER BY COALESCE(deal_score, -1) DESC, last_seen_at DESC LIMIT 500`,
   ).all<ListingRow>();
 
@@ -84,6 +88,7 @@ export async function GET(request: Request) {
     (row) =>
       row.category === "speaker" &&
       isSpeakerListing(row.title) &&
+      isVintageListing(row.title, row.description ?? "") &&
       !exclusionReason(row.title, row.description ?? ""),
   );
 
@@ -113,7 +118,7 @@ export async function GET(request: Request) {
       condition: row.condition,
       imageUrl: row.image_url,
       postedAt: row.posted_at ? new Date(row.posted_at).toISOString() : null,
-      isVintage: Boolean(row.is_vintage),
+      isVintage: true,
       excluded: false,
       exclusionReason: null,
       firstSeenAt: new Date(row.first_seen_at).toISOString(),
