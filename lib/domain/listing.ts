@@ -1,6 +1,7 @@
 import {
   ACCESSORY_TITLE_TERMS,
   EXCLUDED_TERMS,
+  MODERN_SPEAKER_TERMS,
   SEARCH_CENTER,
   VINTAGE_CUTOFF_YEAR,
   VINTAGE_TERMS,
@@ -106,20 +107,26 @@ export function extractModel(title: string, brand: string | null) {
   return candidates?.[0]?.replace(/\s+/g, "-").toUpperCase() ?? null;
 }
 
-export function isVintageListing(text: string, brand: string | null) {
-  const normalized = normalizeText(text);
-  const years = [...normalized.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map((match) =>
-    Number(match[1]),
-  );
-  if (years.some((year) => year <= VINTAGE_CUTOFF_YEAR)) return true;
-  if (VINTAGE_TERMS.some((term) => normalized.includes(term))) return true;
-  return Boolean(brand && /wood|silver face|silverface|stereo|classic/.test(normalized));
-}
-
 function isKnownSpeakerFamily(normalizedTitle: string) {
   return /heresy|la scala|lascala|cornwall|belle|khorn|k horn|l ?100|l ?96|l ?112|l ?166|hpm|century|legacy|graduate/.test(
     normalizedTitle,
   );
+}
+
+function isModernSpeakerTitle(normalizedTitle: string) {
+  return MODERN_SPEAKER_TERMS.some((term) => normalizedTitle.includes(term));
+}
+
+export function isVintageListing(title: string, description = "") {
+  const titleNorm = normalizeText(title);
+  if (isModernSpeakerTitle(titleNorm)) return false;
+  if (isKnownSpeakerFamily(titleNorm)) return true;
+  const years = [...`${title} ${description}`.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map((match) =>
+    Number(match[1]),
+  );
+  if (years.some((year) => year <= VINTAGE_CUTOFF_YEAR)) return true;
+  if (years.some((year) => year > VINTAGE_CUTOFF_YEAR)) return false;
+  return VINTAGE_TERMS.some((term) => titleNorm.includes(term));
 }
 
 export function isSpeakerListing(title: string) {
@@ -228,7 +235,7 @@ export function normalizeListing(raw: RawListing, now = new Date()): NormalizedL
     condition: raw.condition?.trim() ?? null,
     imageUrl: raw.imageUrl ?? null,
     postedAt: parsePostedAt(raw.postedAt),
-    isVintage: isVintageListing(combined, brand),
+    isVintage: isVintageListing(raw.title, raw.description ?? ""),
     excluded:
       Boolean(reason) || (distance !== null && distance > SEARCH_CENTER.radiusMiles),
     exclusionReason:
