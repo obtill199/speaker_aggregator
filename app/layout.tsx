@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "The Sound Room",
   description:
-    "Find, evaluate, repair, and track vintage speakers and receivers near Udall, Kansas.",
+    "Find, evaluate, repair, and track vintage speakers near Udall, Kansas.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

@@ -12,9 +12,11 @@ account controls.
 2. Copy `config.example.toml` outside this repository, add credentials through
    `FACEBOOK_USERNAME` and `FACEBOOK_PASSWORD`, and run the monitor on a trusted
    workstation or VPS. The upstream tool handles discovery and notification.
-3. Export discovered public listing fields in the shape shown by
-   `import.example.json`. Include coordinates so the app can enforce the
-   250-mile radius rather than trusting a city label.
+3. Run `python export_listings.py` from this repository to export the upstream
+   cache, or produce the shape shown by `import.example.json`. The exporter
+   leaves missing coordinates empty; it never substitutes another city's
+   coordinates. Include real coordinates when available so the app can enforce
+   the 250-mile radius rather than trusting a city label.
 4. Publish the export from that trusted machine:
 
    ```bash

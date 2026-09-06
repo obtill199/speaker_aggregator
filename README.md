@@ -1,7 +1,7 @@
 # The Sound Room
 
-The Sound Room is a vintage hi-fi deal finder centered on Udall, Kansas. It
-normalizes speaker and receiver listings, rejects equipment outside a 250-mile
+The Sound Room is a vintage speaker deal finder centered on Udall, Kansas. It
+normalizes speaker listings, rejects equipment outside a 250-mile
 radius when coordinates are available, explains repair risk, and tracks finds
 from the first look through repair and resale.
 
@@ -13,8 +13,7 @@ inventory controls. The design rules live in [`DESIGN.md`](DESIGN.md).
 
 - Responsive dashboard with search, grade/brand/source filters, detail sheets,
   an Udall-centered radius view, and a persistent Garage pipeline.
-- Brand aliases for JBL, Klipsch/Klipsh, Advent, Pioneer/Pioner, Sansui,
-  Marantz, and Yamaha.
+- Brand aliases for JBL, Klipsch/Klipsh, Advent, and Pioneer/Pioner.
 - Explainable Great / Good / Average / No Deal / Bad gauge. Missing price or
   defensible sold comps produces **Needs Review**, never a made-up score.
 - Repair-risk reserves, mileage, shipping, and selling fees in the economics.

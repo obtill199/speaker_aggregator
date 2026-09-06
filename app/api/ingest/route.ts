@@ -4,11 +4,16 @@ import { verifyGitHubCollectorToken } from "@/lib/auth/github-oidc";
 import { sameSecret } from "@/lib/auth/shared-secret";
 import { scoreListing } from "@/lib/domain/scoring";
 
+const publicHttpUrl = z.string().url().refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === "http:" || protocol === "https:";
+}, "Only HTTP(S) URLs are accepted");
+
 const listingSchema = z.object({
   id: z.string().min(1),
   source: z.enum(["ebay", "facebook", "reverb", "estatesales", "usaudiomart", "manual"]),
   sourceListingId: z.string().min(1),
-  url: z.string().url(),
+  url: publicHttpUrl,
   title: z.string().min(1),
   normalizedTitle: z.string(),
   description: z.string().default(""),
@@ -22,7 +27,7 @@ const listingSchema = z.object({
   longitude: z.number().nullable(),
   distanceMiles: z.number().nonnegative().nullable(),
   condition: z.string().nullable(),
-  imageUrl: z.string().url().nullable(),
+  imageUrl: publicHttpUrl.nullable(),
   postedAt: z.string().nullable(),
   isVintage: z.boolean(),
   excluded: z.boolean(),
@@ -79,7 +84,12 @@ export async function POST(request: Request) {
   }
 
   const scored = parsed.data.listings
-    .filter((listing) => listing.source !== "estatesales" && listing.category === "speaker")
+    .filter(
+      (listing) =>
+        !listing.excluded &&
+        listing.source !== "estatesales" &&
+        listing.category === "speaker",
+    )
     .map((listing) => ({
     listing,
     score: scoreListing(listing, parsed.data.comparables[listing.id] ?? []),
@@ -109,11 +119,15 @@ export async function POST(request: Request) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(source, source_listing_id) DO UPDATE SET
-        url = excluded.url, title = excluded.title, price_cents = excluded.price_cents,
-        shipping_cents = excluded.shipping_cents, location = excluded.location,
+        url = excluded.url, title = excluded.title, brand = excluded.brand,
+        model = excluded.model, category = excluded.category,
+        price_cents = excluded.price_cents, shipping_cents = excluded.shipping_cents,
+        location = excluded.location, latitude = excluded.latitude,
+        longitude = excluded.longitude, distance_miles = excluded.distance_miles,
         condition = excluded.condition, description = excluded.description,
-        image_url = excluded.image_url, last_seen_at = excluded.last_seen_at,
-        status = 'active', deal_score = excluded.deal_score,
+        image_url = excluded.image_url, posted_at = excluded.posted_at,
+        last_seen_at = excluded.last_seen_at, status = 'active',
+        is_vintage = excluded.is_vintage, deal_score = excluded.deal_score,
         deal_grade = excluded.deal_grade, confidence = excluded.confidence,
         estimated_value_low_cents = excluded.estimated_value_low_cents,
         estimated_value_high_cents = excluded.estimated_value_high_cents,

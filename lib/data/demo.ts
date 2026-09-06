@@ -19,16 +19,16 @@ const rawListings: RawListing[] = [
   },
   {
     source: "ebay",
-    sourceListingId: "demo-sansui-9090",
+    sourceListingId: "demo-advent-large",
     url: "https://www.ebay.com/",
-    title: "Sansui 9090 vintage stereo receiver",
-    description: "Powers on. One channel cuts out and controls are scratchy. Sold as-is.",
-    priceCents: 62500,
-    shippingCents: 0,
+    title: "Large Advent vintage speakers — walnut pair",
+    description: "Original drivers. Both play, but the woofer surrounds need refoaming.",
+    priceCents: 22500,
+    shippingCents: 4500,
     location: "Tulsa, OK",
     latitude: 36.154,
     longitude: -95.9928,
-    condition: "For parts or repair",
+    condition: "Used — fair",
     postedAt: "2026-08-27T18:10:00.000Z",
   },
   {
@@ -46,11 +46,11 @@ const rawListings: RawListing[] = [
   },
   {
     source: "reverb",
-    sourceListingId: "demo-marantz-2230",
+    sourceListingId: "demo-jbl-4311",
     url: "https://reverb.com/",
-    title: "Marantz 2230 vintage stereo receiver",
-    description: "Silver face. Powers on. Needs a recap; lamps work. Local pickup preferred.",
-    priceCents: 45000,
+    title: "JBL 4311 vintage studio monitor pair",
+    description: "All drivers work. Cabinets have veneer damage and need refinishing.",
+    priceCents: 85000,
     location: "Ponca City, OK",
     latitude: 36.7069,
     longitude: -97.0856,
@@ -72,11 +72,11 @@ const rawListings: RawListing[] = [
   },
   {
     source: "reverb",
-    sourceListingId: "demo-yamaha-cr",
+    sourceListingId: "demo-pioneer-cs99a",
     url: "https://reverb.com/c/home-audio/speakers",
-    title: "Yamaha CR-820 natural sound receiver",
-    description: "Serviced and recapped. All inputs and lamps work.",
-    priceCents: 72000,
+    title: "Pioneer CS-99A vintage speaker pair",
+    description: "Tested and working. Original lattice grilles and drivers are intact.",
+    priceCents: 60000,
     shippingCents: 6500,
     location: "Kansas City, MO",
     latitude: 39.0997,
@@ -88,10 +88,11 @@ const rawListings: RawListing[] = [
 
 const comparableValues: Record<string, number[]> = {
   "demo-jbl-l100": [105000, 112500, 119000, 125000, 132000, 138000],
-  "demo-sansui-9090": [118000, 127500, 132000, 141000, 149500],
+  "demo-advent-large": [42500, 47500, 50000, 54000, 57500],
   "demo-klipsch-heresy": [70000, 74000, 78000, 82500, 86000],
   "demo-pioneer-hpm": [72000, 79000, 85000, 89000, 94000],
-  "demo-yamaha-cr": [56000, 60000, 62500, 65000, 68000],
+  "demo-jbl-4311": [110000, 117500, 125000, 132500, 140000],
+  "demo-pioneer-cs99a": [70000, 76000, 82500, 87500, 92000],
 };
 
 export const DEMO_LISTINGS = rawListings.map((raw, listingIndex) => {

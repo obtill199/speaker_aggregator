@@ -14,6 +14,9 @@ async function importedListings() {
   if (!path) return [];
   const payload = JSON.parse(await readFile(path, "utf8")) as unknown;
   if (!Array.isArray(payload)) throw new Error("FACEBOOK_IMPORT_PATH must contain a JSON array.");
+  if (payload.some((listing) => !listing || typeof listing !== "object" || listing.source !== "facebook")) {
+    throw new Error("Every FACEBOOK_IMPORT_PATH entry must be a Facebook listing.");
+  }
   return payload as RawListing[];
 }
 
@@ -48,7 +51,7 @@ async function main() {
     new ReverbCollector(),
   ];
   const imported = await importedListings();
-  if (imported.length) collectors.push(new ManualCollector(imported));
+  if (imported.length) collectors.push(new ManualCollector(imported, "facebook"));
 
   const output = await runCollectors(collectors);
   const comparables = await importedComparables();

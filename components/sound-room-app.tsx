@@ -142,7 +142,7 @@ function ListingCard({ listing, onInspect, isDemo }: { listing: DemoListing; onI
         <button className="listing-title" onClick={onInspect}>{listing.title}</button>
         <div className="listing-price-row">
           <strong>{money(listing.priceCents)}</strong>
-          <span>{listing.distanceMiles !== null ? `${listing.distanceMiles} mi` : "Shippable"}</span>
+          <span>{listing.distanceMiles !== null ? `${listing.distanceMiles} mi` : "Distance unknown"}</span>
         </div>
         <div className="listing-meta">
           <span><MapPin /> {listing.location ?? "Location unavailable"}</span>
@@ -277,7 +277,7 @@ function RadarMap({ listings, onInspect }: { listings: DemoListing[]; onInspect:
       <aside className="map-legend">
         <span className="eyebrow">250-mile listening radius</span>
         <h2>Local opportunities</h2>
-        <p>Click a marker to inspect the deal. Shippable-only listings stay in the list view.</p>
+        <p>Click a marker to inspect the deal. Listings without coordinates stay in the list view.</p>
         <div className="map-stat"><strong>{listings.filter((item) => item.distanceMiles !== null).length}</strong><span>mapped listings</span></div>
         <div className="map-stat"><strong>{listings.filter((item) => item.score.grade === "great").length}</strong><span>great deals</span></div>
       </aside>
@@ -363,7 +363,7 @@ export function SoundRoomApp({ initialListings }: { initialListings: DemoListing
     ]).then(([listingResult, healthResult]) => {
       if (listingResult.status === "fulfilled" && listingResult.value.items?.length) {
         const items = (listingResult.value.items as DemoListing[]).filter(
-          (item) => item.source !== "estatesales" && item.category !== "estate-lead",
+          (item) => item.source !== "estatesales" && item.category === "speaker",
         );
         if (items.length) {
           setListings(items);

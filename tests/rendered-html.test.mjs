@@ -30,7 +30,7 @@ test("renders The Sound Room product metadata", async () => {
   assert.match(html, /<title>The Sound Room<\/title>/i);
   assert.match(
     html,
-    /Find, evaluate, repair, and track vintage speakers and receivers near Udall, Kansas\./i,
+    /Find, evaluate, repair, and track vintage speakers near Udall, Kansas\./i,
   );
   assert.doesNotMatch(html, /name=["']codex-preview["']/i);
   assert.match(html, /Fresh vintage finds, ranked for the repair bench\./i);
@@ -39,6 +39,7 @@ test("renders The Sound Room product metadata", async () => {
   assert.match(html, /Radius map/i);
   assert.match(html, /Garage/i);
   assert.match(html, /JBL L100 Century speakers/i);
+  assert.doesNotMatch(html, /stereo receiver/i);
   assert.match(html, /Demo only/i);
   assert.match(html, /fictional examples, not available equipment/i);
   assert.doesNotMatch(html, /Ship something real from a clean baseline/i);

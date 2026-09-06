@@ -47,6 +47,41 @@ test("Facebook sidecar keeps credentials out of its checked-in config", async ()
   assert.doesNotMatch(config, /^\s*(username|password)\s*=/m);
 });
 
+test("Facebook cache export never invents local coordinates", async () => {
+  const exporter = await readFile(new URL("export_listings.py", root), "utf8");
+  assert.doesNotMatch(exporter, /37\.6872|-97\.3301/);
+  assert.match(exporter, /val\.get\("latitude"\)/);
+  assert.match(exporter, /FACEBOOK_IMPORT_PATH/);
+});
+
+test("unknown listing distance is described accurately", async () => {
+  const [component, preview] = await Promise.all([
+    readFile(new URL("components/sound-room-app.tsx", root), "utf8"),
+    readFile(new URL("docs/index.html", root), "utf8"),
+  ]);
+  assert.doesNotMatch(component, /Shippable/);
+  assert.doesNotMatch(preview, /Shippable/);
+  assert.match(component, /Distance unknown/);
+  assert.match(preview, /Distance unknown/);
+});
+
+test("ingest accepts only browser-safe public URLs", async () => {
+  const route = await readFile(new URL("app/api/ingest/route.ts", root), "utf8");
+  assert.match(route, /protocol === "http:" \|\| protocol === "https:"/);
+  assert.match(route, /url: publicHttpUrl/);
+  assert.match(route, /imageUrl: publicHttpUrl\.nullable\(\)/);
+});
+
+test("ingest refreshes corrected location and classification fields", async () => {
+  const route = await readFile(new URL("app/api/ingest/route.ts", root), "utf8");
+  assert.match(route, /latitude = excluded\.latitude/);
+  assert.match(route, /longitude = excluded\.longitude/);
+  assert.match(route, /distance_miles = excluded\.distance_miles/);
+  assert.match(route, /brand = excluded\.brand/);
+  assert.match(route, /category = excluded\.category/);
+  assert.match(route, /!listing\.excluded/);
+});
+
 test("operational documentation preserves compliance and scoring safeguards", async () => {
   const [sources, scoring] = await Promise.all([
     readFile(new URL("docs/SOURCES.md", root), "utf8"),
@@ -60,8 +95,12 @@ test("operational documentation preserves compliance and scoring safeguards", as
 });
 
 test("demo cards cannot masquerade as live marketplace links", async () => {
-  const component = await readFile(new URL("components/sound-room-app.tsx", root), "utf8");
+  const [component, inventory] = await Promise.all([
+    readFile(new URL("components/sound-room-app.tsx", root), "utf8"),
+    readFile(new URL("lib/data/demo.ts", root), "utf8"),
+  ]);
   assert.match(component, /These are fictional examples, not available equipment/);
   assert.match(component, /No marketplace listing/);
   assert.match(component, /isDemo \? "Demo example"/);
+  assert.doesNotMatch(inventory, /stereo receiver/i);
 });
