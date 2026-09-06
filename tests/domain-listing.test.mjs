@@ -70,8 +70,8 @@ test("excludes whole-house estate sale leads", async () => {
   assert.equal(sale.exclusionReason, "estate sale");
 });
 
-test("keeps complete vintage speakers and stereo receivers", async () => {
-  const { normalizeListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
+test("keeps complete vintage speakers", async () => {
+  const { normalizeListing, isVintageListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
   const speaker = normalizeListing({
     source: "reverb",
     sourceListingId: "l100",
@@ -80,23 +80,33 @@ test("keeps complete vintage speakers and stereo receivers", async () => {
     description: "Original pair. Knobs and grille cloth are worn.",
     priceCents: 82500,
   });
-  const receiver = normalizeListing({
-    source: "reverb",
-    sourceListingId: "9090",
-    url: "https://reverb.com/item/9090",
-    title: "Sansui 9090 vintage stereo receiver",
-    priceCents: 62500,
-  });
   const heresy = normalizeListing({
     source: "reverb",
     sourceListingId: "heresy",
     url: "https://reverb.com/item/heresy",
-    title: "Vintage Klipsch Heresy speakers in oiled walnut",
+    title: "Klipsch Heresy speakers in oiled walnut",
     priceCents: 180000,
   });
-  assert.equal(speaker.excluded, false);
-  assert.equal(receiver.excluded, false);
-  assert.equal(heresy.excluded, false);
+  const advent = normalizeListing({
+    source: "facebook",
+    sourceListingId: "legacy",
+    url: "https://example.com/legacy",
+    title: "Advent Legacy floor speakers",
+    priceCents: 25000,
+  });
+  assert.equal(speaker.isVintage, true);
+  assert.equal(heresy.isVintage, true);
+  assert.equal(advent.isVintage, true);
+  assert.equal(isVintageListing("Pioneer HPM-100 speakers"), true);
+});
+
+test("rejects modern speakers even when the title says vintage", async () => {
+  const { isVintageListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
+  assert.equal(isVintageListing("JBL PartyBox 310 speakers"), false);
+  assert.equal(isVintageListing("Klipsch The Fives powered speakers"), false);
+  assert.equal(isVintageListing("Klipsch RP-600M Reference Premiere bookshelf speakers"), false);
+  assert.equal(isVintageListing("JBL 305P MkII studio monitors 2018"), false);
+  assert.equal(isVintageListing("JBL speakers"), false);
 });
 
 test("drops Reverb parts, drum hardware, loose drivers, and AVRs", async () => {
