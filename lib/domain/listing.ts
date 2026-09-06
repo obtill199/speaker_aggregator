@@ -90,6 +90,9 @@ export function identifyBrand(text: string) {
 
 export function classifyCategory(text: string): ListingCategory {
   const normalized = normalizeText(text);
+  if (/\b(speaker|speakers|loudspeaker|loudspeakers|bookshelf|heresy|cornwall)\b/.test(normalized)) {
+    return "speaker";
+  }
   if (/receiver|amplifier|integrated amp|stereo amp|tuner/.test(normalized)) {
     return "receiver";
   }
@@ -117,6 +120,19 @@ function isKnownSpeakerFamily(normalizedTitle: string) {
   return /heresy|la scala|lascala|cornwall|belle|khorn|k horn|l ?100|l ?96|l ?112|l ?166|hpm|century|legacy|graduate/.test(
     normalizedTitle,
   );
+}
+
+export function isSpeakerListing(title: string) {
+  const normalized = normalizeText(title);
+  const namedSpeaker =
+    /\b(speaker|speakers|loudspeaker|loudspeakers|bookshelf|floor standing)\b/.test(normalized) ||
+    isKnownSpeakerFamily(normalized);
+  if (!namedSpeaker) return false;
+  const electronics = /\b(receiver|amplifier|integrated amp|tuner|avr)\b/.test(normalized);
+  if (electronics && !/\b(speaker|speakers|loudspeaker|loudspeakers)\b/.test(normalized) && !isKnownSpeakerFamily(normalized)) {
+    return false;
+  }
+  return true;
 }
 
 function isLooseDriverTitle(normalizedTitle: string) {
@@ -202,7 +218,7 @@ export function normalizeListing(raw: RawListing, now = new Date()): NormalizedL
     description: raw.description?.trim() ?? "",
     brand,
     model: extractModel(raw.title, brand),
-    category: classifyCategory(combined),
+    category: classifyCategory(`${raw.title} ${raw.description ?? ""}`),
     priceCents: raw.priceCents ?? null,
     shippingCents: raw.shippingCents ?? 0,
     location: raw.location?.trim() ?? null,

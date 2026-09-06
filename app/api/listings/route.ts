@@ -1,5 +1,5 @@
 import { DEMO_LISTINGS } from "@/lib/data/demo";
-import { exclusionReason } from "@/lib/domain/listing";
+import { exclusionReason, isSpeakerListing } from "@/lib/domain/listing";
 import type { ScoreResult } from "@/lib/domain/scoring";
 import { publicJson } from "@/lib/http/cors";
 
@@ -61,11 +61,13 @@ function storedScore(row: ListingRow): ScoreResult {
   };
 }
 
+const speakerDemo = DEMO_LISTINGS.filter((item) => isSpeakerListing(item.title));
+
 export async function GET(request: Request) {
   const { env } = await import("cloudflare:workers");
   const result = await env.DB.prepare(
     `SELECT * FROM listings WHERE status = 'active'
-     AND source != 'estatesales' AND category != 'estate-lead'
+     AND source != 'estatesales' AND category = 'speaker'
      AND lower(title) NOT LIKE '%tom mount%'
      AND lower(title) NOT LIKE '%tom holder%'
      AND lower(title) NOT LIKE '%fuse style%'
@@ -73,18 +75,25 @@ export async function GET(request: Request) {
      AND lower(title) NOT LIKE '%horn adapter%'
      AND lower(title) NOT LIKE '%home theater%'
      AND lower(title) NOT LIKE '%diversity receiver%'
+     AND lower(title) NOT LIKE '%stereo receiver%'
+     AND lower(title) NOT LIKE '%av receiver%'
      ORDER BY COALESCE(deal_score, -1) DESC, last_seen_at DESC LIMIT 500`,
   ).all<ListingRow>();
 
-  if (!result.results.length) {
-    return publicJson(request, { mode: "demo", items: DEMO_LISTINGS });
+  const items = result.results.filter(
+    (row) =>
+      row.category === "speaker" &&
+      isSpeakerListing(row.title) &&
+      !exclusionReason(row.title, row.description ?? ""),
+  );
+
+  if (!items.length) {
+    return publicJson(request, { mode: "demo", items: speakerDemo });
   }
 
   return publicJson(request, {
     mode: "live",
-    items: result.results
-      .filter((row) => row.source !== "estatesales" && row.category !== "estate-lead" && !exclusionReason(row.title, row.description ?? ""))
-      .map((row, index) => ({
+    items: items.map((row, index) => ({
       id: row.id,
       source: row.source,
       sourceListingId: row.source_listing_id,
