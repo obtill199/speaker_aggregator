@@ -70,6 +70,58 @@ test("excludes whole-house estate sale leads", async () => {
   assert.equal(sale.exclusionReason, "estate sale");
 });
 
+test("keeps complete vintage speakers and stereo receivers", async () => {
+  const { normalizeListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
+  const speaker = normalizeListing({
+    source: "reverb",
+    sourceListingId: "l100",
+    url: "https://reverb.com/item/l100",
+    title: "Vintage JBL L100 Century speakers",
+    description: "Original pair. Knobs and grille cloth are worn.",
+    priceCents: 82500,
+  });
+  const receiver = normalizeListing({
+    source: "reverb",
+    sourceListingId: "9090",
+    url: "https://reverb.com/item/9090",
+    title: "Sansui 9090 vintage stereo receiver",
+    priceCents: 62500,
+  });
+  const heresy = normalizeListing({
+    source: "reverb",
+    sourceListingId: "heresy",
+    url: "https://reverb.com/item/heresy",
+    title: "Vintage Klipsch Heresy speakers in oiled walnut",
+    priceCents: 180000,
+  });
+  assert.equal(speaker.excluded, false);
+  assert.equal(receiver.excluded, false);
+  assert.equal(heresy.excluded, false);
+});
+
+test("drops Reverb parts, drum hardware, loose drivers, and AVRs", async () => {
+  const { normalizeListing } = await vite.ssrLoadModule("/lib/domain/listing.ts");
+  const cases = [
+    ["(10) Green LED 8V Fuse Style Lamps for Sansui, Pioneer, Marantz", "fuse style"],
+    ["Yamaha 2-Hole Receiver Double Tom Mount Holder Post - Vintage", "drum-hardware"],
+    ["JBL D123 12\" vintage speaker", "loose-driver"],
+    ["Yamaha HTR-5730 Receiver HiFi Stereo Vintage 5.1 Channel Home Theater Audio AVR", "home theater"],
+    ["Pioneer VSX-D503S AV Receiver 1994", "home-theater-receiver"],
+    ["JBL Horn Adapter 1\u201d To 1 3/8\u201d throat", "horn adapter"],
+  ];
+  for (const [title, reason] of cases) {
+    const listing = normalizeListing({
+      source: "reverb",
+      sourceListingId: reason,
+      url: "https://reverb.com/item/x",
+      title,
+      priceCents: 8000,
+    });
+    assert.equal(listing.excluded, true, title);
+    assert.equal(listing.exclusionReason, reason, title);
+  }
+});
+
 test("deduplicates exact IDs and probable cross-posts", async () => {
   const { deduplicateListings, normalizeListing } = await vite.ssrLoadModule(
     "/lib/domain/listing.ts",

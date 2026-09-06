@@ -25,8 +25,11 @@ test("maps public Reverb results into normalized USD listings", async () => {
   const collector = new ReverbCollector();
   let calls = 0;
   const result = await collector.collect({
-    fetch: async () => {
+    fetch: async (url) => {
       calls += 1;
+      const query = new URL(url).searchParams.get("query") ?? "";
+      assert.match(query, /vintage (speakers|stereo receiver)/);
+      assert.equal(new URL(url).searchParams.get("ships_to"), "US");
       return Response.json({ listings: [{
         id: 77,
         title: "Vintage JBL L100 speakers",
@@ -42,6 +45,37 @@ test("maps public Reverb results into normalized USD listings", async () => {
   assert.equal(result.listings[0].priceCents, 82500);
   assert.equal(result.listings[0].description, "Classic walnut cabinets");
   assert.equal(result.listings[0].url, "https://reverb.com/item/77");
+});
+
+test("Reverb collector drops lamp kits and drum hardware before ingest", async () => {
+  const { ReverbCollector } = await vite.ssrLoadModule("/lib/collectors/reverb.ts");
+  const collector = new ReverbCollector();
+  const result = await collector.collect({
+    fetch: async () => Response.json({
+      listings: [
+        {
+          id: 1,
+          title: "Vintage JBL L100 speakers",
+          price: { amount_cents: 82500, currency: "USD" },
+          _links: { web: { href: "https://reverb.com/item/1" } },
+        },
+        {
+          id: 2,
+          title: "(10) Green LED 8V Fuse Style Lamps for Marantz",
+          price: { amount_cents: 1800, currency: "USD" },
+          _links: { web: { href: "https://reverb.com/item/2" } },
+        },
+        {
+          id: 3,
+          title: "Yamaha 2-Hole Receiver Double Tom Mount Holder Post - Vintage",
+          price: { amount_cents: 9000, currency: "USD" },
+          _links: { web: { href: "https://reverb.com/item/3" } },
+        },
+      ],
+    }),
+  });
+  assert.equal(result.listings.length, 8);
+  assert.ok(result.listings.every((item) => item.title.includes("JBL L100")));
 });
 
 test("retries one transient Reverb failure without degrading the whole source", async () => {
