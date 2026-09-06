@@ -1,4 +1,5 @@
 import { DEMO_LISTINGS } from "@/lib/data/demo";
+import { exclusionReason } from "@/lib/domain/listing";
 import type { ScoreResult } from "@/lib/domain/scoring";
 import { publicJson } from "@/lib/http/cors";
 
@@ -65,6 +66,13 @@ export async function GET(request: Request) {
   const result = await env.DB.prepare(
     `SELECT * FROM listings WHERE status = 'active'
      AND source != 'estatesales' AND category != 'estate-lead'
+     AND lower(title) NOT LIKE '%tom mount%'
+     AND lower(title) NOT LIKE '%tom holder%'
+     AND lower(title) NOT LIKE '%fuse style%'
+     AND lower(title) NOT LIKE '%dial lamp%'
+     AND lower(title) NOT LIKE '%horn adapter%'
+     AND lower(title) NOT LIKE '%home theater%'
+     AND lower(title) NOT LIKE '%diversity receiver%'
      ORDER BY COALESCE(deal_score, -1) DESC, last_seen_at DESC LIMIT 500`,
   ).all<ListingRow>();
 
@@ -75,7 +83,7 @@ export async function GET(request: Request) {
   return publicJson(request, {
     mode: "live",
     items: result.results
-      .filter((row) => row.source !== "estatesales" && row.category !== "estate-lead")
+      .filter((row) => row.source !== "estatesales" && row.category !== "estate-lead" && !exclusionReason(row.title, row.description ?? ""))
       .map((row, index) => ({
       id: row.id,
       source: row.source,

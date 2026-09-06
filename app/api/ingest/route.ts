@@ -173,11 +173,20 @@ export async function POST(request: Request) {
     ),
   );
 
-  const retireEstates = env.DB.prepare(
-    `UPDATE listings SET status = 'withdrawn' WHERE source = 'estatesales' OR category = 'estate-lead'`,
+  const retireNoise = env.DB.prepare(
+    `UPDATE listings SET status = 'withdrawn'
+     WHERE source = 'estatesales'
+        OR category = 'estate-lead'
+        OR lower(title) LIKE '%tom mount%'
+        OR lower(title) LIKE '%tom holder%'
+        OR lower(title) LIKE '%fuse style%'
+        OR lower(title) LIKE '%dial lamp%'
+        OR lower(title) LIKE '%horn adapter%'
+        OR lower(title) LIKE '%home theater%'
+        OR lower(title) LIKE '%diversity receiver%'`,
   );
 
-  await env.DB.batch([retireEstates, ...listingWrites, ...runWrites]);
+  await env.DB.batch([retireNoise, ...listingWrites, ...runWrites]);
 
   const greatDeals = scored
     .filter(({ listing, score }) => newIds.has(listing.id) && score.grade === "great")
