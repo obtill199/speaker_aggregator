@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   const scored = parsed.data.listings
-    .filter((listing) => listing.source !== "estatesales" && listing.category !== "estate-lead")
+    .filter((listing) => listing.source !== "estatesales" && listing.category === "speaker")
     .map((listing) => ({
     listing,
     score: scoreListing(listing, parsed.data.comparables[listing.id] ?? []),
@@ -176,14 +176,15 @@ export async function POST(request: Request) {
   const retireNoise = env.DB.prepare(
     `UPDATE listings SET status = 'withdrawn'
      WHERE source = 'estatesales'
-        OR category = 'estate-lead'
+        OR category IN ('estate-lead', 'receiver')
         OR lower(title) LIKE '%tom mount%'
         OR lower(title) LIKE '%tom holder%'
         OR lower(title) LIKE '%fuse style%'
         OR lower(title) LIKE '%dial lamp%'
         OR lower(title) LIKE '%horn adapter%'
         OR lower(title) LIKE '%home theater%'
-        OR lower(title) LIKE '%diversity receiver%'`,
+        OR lower(title) LIKE '%diversity receiver%'
+        OR lower(title) LIKE '%stereo receiver%'`,
   );
 
   await env.DB.batch([retireNoise, ...listingWrites, ...runWrites]);

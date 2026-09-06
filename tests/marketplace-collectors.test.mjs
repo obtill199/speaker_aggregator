@@ -28,7 +28,8 @@ test("maps public Reverb results into normalized USD listings", async () => {
     fetch: async (url) => {
       calls += 1;
       const query = new URL(url).searchParams.get("query") ?? "";
-      assert.match(query, /vintage (speakers|stereo receiver)/);
+      assert.match(query, /vintage speakers/);
+      assert.doesNotMatch(query, /receiver/);
       assert.equal(new URL(url).searchParams.get("ships_to"), "US");
       return Response.json({ listings: [{
         id: 77,
@@ -40,7 +41,7 @@ test("maps public Reverb results into normalized USD listings", async () => {
       }] });
     },
   });
-  assert.equal(calls, 8);
+  assert.equal(calls, 4);
   assert.equal(result.status, "healthy");
   assert.equal(result.listings[0].priceCents, 82500);
   assert.equal(result.listings[0].description, "Classic walnut cabinets");
@@ -74,7 +75,7 @@ test("Reverb collector drops lamp kits and drum hardware before ingest", async (
       ],
     }),
   });
-  assert.equal(result.listings.length, 8);
+  assert.equal(result.listings.length, 4);
   assert.ok(result.listings.every((item) => item.title.includes("JBL L100")));
 });
 
@@ -89,14 +90,14 @@ test("retries one transient Reverb failure without degrading the whole source", 
       return Response.json({ listings: [] });
     },
   });
-  assert.equal(calls, 9);
+  assert.equal(calls, 5);
   assert.equal(result.status, "healthy");
   assert.deepEqual(result.warnings, []);
 });
 
 test("GitHub Pages CORS is exact and does not open the API to arbitrary origins", async () => {
   const { publicJson } = await vite.ssrLoadModule("/lib/http/cors.ts");
-  const allowed = publicJson(new Request("https://example.com", { headers: { Origin: "https://obtill199.github.io" } }), { ok: true });
+  const allowed = publicJson(new Request("https://example.com", { headers: { Origin: { Origin: "https://obtill199.github.io" } } }), { ok: true });
   const blocked = publicJson(new Request("https://example.com", { headers: { Origin: "https://evil.example" } }), { ok: true });
   assert.equal(allowed.headers.get("access-control-allow-origin"), "https://obtill199.github.io");
   assert.equal(blocked.headers.get("access-control-allow-origin"), null);
